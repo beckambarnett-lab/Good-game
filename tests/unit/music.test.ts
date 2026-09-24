@@ -70,3 +70,48 @@ describe('director', () => {
     expect(firstMelody.length).toBeGreaterThan(0);
   });
 });
+
+describe('director phrases (the valley’s M0 music)', () => {
+  const D_MAJOR = [2, 6, 9];
+
+  it('performs one 4-bar phrase on felt piano that ends on the home chord', () => {
+    for (const [section, index] of [
+      ['A', 1],
+      ['B', 1],
+    ] as const) {
+      for (let seed = 1; seed <= 12; seed++) {
+        const p = perform(p01Lullaby, {
+          seed,
+          mood: 'clear',
+          phrase: { section, index },
+          only: ['feltPiano'],
+        });
+        expect(p.form).toEqual([section]);
+        expect(p.events.length).toBeGreaterThan(15);
+        expect(p.events.every((e) => e.inst === 'feltPiano')).toBe(true);
+        // 4 bars of 3/4 at 66 BPM is 10.9 s; with the closing ritardando and release, 12–17 s.
+        expect(p.duration).toBeGreaterThan(12);
+        expect(p.duration).toBeLessThan(17);
+        // Bar 4 starts about 8.2 s in: everything struck after its downbeat belongs to D major.
+        const last = p.events.filter((e) => e.t > 8.9);
+        expect(last.length).toBeGreaterThan(0);
+        for (const e of last) expect(D_MAJOR).toContain(e.midi % 12);
+      }
+    }
+  });
+
+  it('keeps the whole melody in a lone phrase and leaves full performances unchanged', () => {
+    const phrase = perform(p01Lullaby, {
+      seed: 3,
+      mood: 'night',
+      phrase: { section: 'A', index: 1 },
+      only: ['feltPiano'],
+    });
+    // The A answer's melody: F#4 A4 D5 · E5 D5 · C#5 B4 C#5 · D5, all present at melody pitch.
+    const melody = phrase.events.filter((e) => e.midi >= 66).map((e) => e.midi);
+    for (const m of [66, 69, 74, 76, 73, 71]) expect(melody).toContain(m);
+    const a = perform(p01Lullaby, { seed: 8, mood: 'snow' });
+    const b = perform(p01Lullaby, { seed: 8, mood: 'snow', only: ['feltPiano', 'warmPad', 'musicBox'] });
+    expect(b.events).toEqual(a.events);
+  });
+});

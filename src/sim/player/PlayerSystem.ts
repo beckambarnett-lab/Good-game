@@ -79,7 +79,12 @@ export class PlayerSystem implements SimSystem {
     if (!d || ![d.x, d.z, d.yaw].every((v) => typeof v === 'number' && Number.isFinite(v))) {
       throw new Error('PlayerSystem: bad save data');
     }
-    Object.assign(this.state, spawnMover(this.world, d.x as number, d.z as number, d.yaw as number));
+    this.place(d.x as number, d.z as number, d.yaw as number);
+  }
+
+  /** Stands the player at (x, z) facing `yaw`, at rest (loading a save, a dev teleport). */
+  place(x: number, z: number, yaw: number): void {
+    Object.assign(this.state, spawnMover(this.world, x, z, yaw));
     this.prev.x = this.state.x;
     this.prev.y = this.state.y;
     this.prev.z = this.state.z;

@@ -1,5 +1,5 @@
 // The app (Plan Part 7.3): the flow state machine, frame loop, settings and page visibility, wired
-// to the sim and the view. M0 flow: Boot → Splash (a click, which will unlock audio) → Title →
+// to the sim and the view. M0 flow: Boot → Splash (a click, which unlocks audio) → Title →
 // Loading → Playing. The title screen and new-game UI arrive in M1, so Title passes straight on.
 
 import { Vector3 } from 'three';
@@ -8,10 +8,17 @@ import { StateMachine } from '../core/StateMachine.ts';
 import type { ShotDef } from '../data/shots.ts';
 import {
   app as appTuning,
+  type CameraRigTuning,
   clock as clockTuning,
-  movement,
+  type FootstepTuning,
+  footsteps as footstepTuning,
+  type GaitTuning,
+  gait as gaitTuning,
+  type MovementTuning,
+  movement as movementTuning,
   cameraRig as rigTuning,
   sim as simTuning,
+  valleyMusic,
   valleyView,
 } from '../data/tuning.ts';
 import { wrenhollowForests } from '../data/world/forests.ts';
@@ -20,6 +27,7 @@ import { PlayerSystem, type Pose } from '../sim/player/PlayerSystem.ts';
 import { Sim } from '../sim/Sim.ts';
 import { valleyMovementWorld } from '../sim/world/MovementWorld.ts';
 import { PlayerAvatar } from '../view/actors/PlayerAvatar.ts';
+import { ValleyAudio } from '../view/audio/ValleyAudio.ts';
 import { CameraRig } from '../view/camera/CameraRig.ts';
 import { generateTerrainInWorker } from '../view/geo/terrain/TerrainClient.ts';
 import { Input } from '../view/input/Input.ts';
@@ -44,6 +52,22 @@ export interface ShotStatus {
 
 const fpsCapOf = (v: '30' | '60' | 'uncapped'): number | null => (v === 'uncapped' ? null : Number(v));
 
+export interface AppOptions {
+  /** Tuning objects, read live (the Winter Walk lab passes copies bound to its sliders). */
+  movement?: MovementTuning;
+  cameraRig?: CameraRigTuning;
+  gait?: GaitTuning;
+  footsteps?: FootstepTuning;
+  /**
+   * Feel-critical sound still in review (Plan Part 8.0): footsteps and the valley's felt-piano
+   * phrases play only where asked (the Winter Walk lab) until the user approves them.
+   */
+  footstepSounds?: boolean;
+  valleyPhrases?: boolean;
+  /** Air temperature (°C) for the cold squeak, until Weather (M1.7) provides it. */
+  airTemperature?: () => number;
+}
+
 export class App {
   readonly fsm = new StateMachine<AppState>('boot', appTransitions);
   readonly settings = new Settings(browserStorage());
@@ -66,8 +90,20 @@ export class App {
   private shotFrames = 0;
   private readonly pose: Pose = { x: 0, y: 0, z: 0, yaw: 0 };
   private readonly focus = new Vector3();
+  private readonly movement: MovementTuning;
+  private readonly rigTuning: CameraRigTuning;
+  private readonly gait: GaitTuning;
+  private readonly options: AppOptions;
+  private audioContext: AudioContext | null = null;
+  /** The valley's sound, once unlocked and loaded (none in shot mode). */
+  audio: ValleyAudio | null = null;
+  private wasGrounded = true;
 
-  constructor(host: HTMLElement) {
+  constructor(host: HTMLElement, options: AppOptions = {}) {
+    this.options = options;
+    this.movement = options.movement ?? movementTuning;
+    this.rigTuning = options.cameraRig ?? rigTuning;
+    this.gait = options.gait ?? gaitTuning;
     this.host = host;
     this.overlay = document.createElement('div');
     this.overlay.className = 'overlay';
@@ -75,7 +111,7 @@ export class App {
     this.hint.className = 'hint';
     this.hint.hidden = true;
     this.hint.textContent =
-      'Click to look around · WASD to walk · Shift to jog · Space to hop · Wheel to zoom';
+      'Click or drag to look around · WASD to walk · Shift to jog · Space to hop · Wheel to zoom';
     host.append(this.overlay, this.hint);
     this.fsm.onChange(() => this.applyTraits());
     this.visibility.events.on('hidden', () => this.applyTraits());
@@ -92,6 +128,7 @@ export class App {
       if (group === 'controls' && key === 'cameraRecenter') {
         this.rig?.setRecenter(this.settings.get('controls', 'cameraRecenter'));
       }
+      if (group === 'audio') this.applyVolumes();
     });
   }
 
@@ -106,8 +143,10 @@ export class App {
     this.fsm.go('title');
     this.fsm.go('loading');
     this.say('<p class="quiet">Laying the snow…</p>');
-    const { terrain, sites, ms } = await generateTerrainInWorker();
+    const [{ terrain, sites, ms }, audio] = await Promise.all([generateTerrainInWorker(), this.loadAudio()]);
     console.info(`Valley generated in ${ms.toFixed(0)} ms (${sites.length} trees)`);
+    this.audio = audio;
+    this.applyVolumes();
 
     const stage = new Stage(this.host, {
       fogDensity: valleyView.fogDensity,
@@ -121,13 +160,17 @@ export class App {
     this.valley = valley;
     this.clockSystem = new ClockSystem(clockTuning);
     const spawn = { x: valleyView.spawnX, z: valleyView.spawnZ, yaw: valleyView.spawnYaw };
-    this.player = new PlayerSystem(valleyMovementWorld(terrain, sites, wrenhollowForests), movement, spawn);
+    this.player = new PlayerSystem(
+      valleyMovementWorld(terrain, sites, wrenhollowForests),
+      this.movement,
+      spawn,
+    );
     this.sim = new Sim(valleyView.seed, simTuning.stepHz, [this.clockSystem, this.player]).init();
 
     if (!shot) {
       this.input = new Input(stage.renderer.domElement);
       const s = this.player.state;
-      this.rig = new CameraRig(rigTuning, (x, z) => valley.groundAt(x, z), movement.capsuleHeight, {
+      this.rig = new CameraRig(this.rigTuning, (x, z) => valley.groundAt(x, z), this.movement.capsuleHeight, {
         x: s.x,
         y: s.y,
         z: s.z,
@@ -135,7 +178,8 @@ export class App {
         speed: 0,
       });
       this.rig.setRecenter(this.settings.get('controls', 'cameraRecenter'));
-      this.avatar = new PlayerAvatar(valleyView.seed);
+      this.avatar = new PlayerAvatar(valleyView.seed, this.gait, this.movement);
+      this.avatar.onFootfall = (side) => this.footfall(side, false);
       stage.scene.add(this.avatar.root);
     }
     this.loop = new GameLoop(
@@ -161,10 +205,84 @@ export class App {
     if (this.shot) this.shot.error = message;
   }
 
-  /** Where the walker stands (for tests and the dev overlay). */
-  playerState(): { x: number; y: number; z: number; speed: number } | null {
+  /** Where the walker stands (for tests, the dev overlay and the Winter Walk lab). */
+  playerState(): {
+    x: number;
+    y: number;
+    z: number;
+    speed: number;
+    surface: number;
+    grounded: boolean;
+  } | null {
     const s = this.player?.state;
-    return s ? { x: s.x, y: s.y, z: s.z, speed: Math.hypot(s.vx, s.vz) } : null;
+    return s
+      ? { x: s.x, y: s.y, z: s.z, speed: Math.hypot(s.vx, s.vz), surface: s.surface, grounded: s.grounded }
+      : null;
+  }
+
+  /** Stands the walker somewhere else and brings the camera along (dev and lab use). */
+  teleport(x: number, z: number, yaw: number): void {
+    if (!this.player) return;
+    this.player.place(x, z, yaw);
+    const s = this.player.state;
+    this.rig?.snap({ x: s.x, y: s.y, z: s.z, yaw, speed: 0 });
+  }
+
+  /** The camera rig, for live tuning (the Winter Walk lab). */
+  get camera(): CameraRig | null {
+    return this.rig;
+  }
+
+  private wantsAudio(): boolean {
+    return !!(this.options.footstepSounds || this.options.valleyPhrases);
+  }
+
+  /** Creates the valley's sound once the splash click has unlocked an AudioContext. */
+  private async loadAudio(): Promise<ValleyAudio | null> {
+    const ctx = this.audioContext;
+    if (!ctx) return null;
+    try {
+      return await ValleyAudio.create(ctx, {
+        seed: valleyView.seed,
+        walkSpeed: this.movement.walkSpeed,
+        footsteps: this.options.footstepSounds ? (this.options.footsteps ?? footstepTuning) : null,
+        music: this.options.valleyPhrases ? valleyMusic : null,
+        musicFrequency: () => this.settings.get('audio', 'musicFrequency'),
+      });
+    } catch (e) {
+      // The valley works silently if audio can't start.
+      console.warn('Audio unavailable:', e);
+      return null;
+    }
+  }
+
+  private applyVolumes(): void {
+    const pct = (k: 'master' | 'music' | 'ambience' | 'sfx' | 'voices' | 'ui') =>
+      this.settings.get('audio', k) / 100;
+    this.audio?.setVolumes({
+      master: pct('master'),
+      music: pct('music'),
+      ambience: pct('ambience'),
+      sfx: pct('sfx'),
+      voice: pct('voices'),
+      ui: pct('ui'),
+    });
+  }
+
+  /** A heel strike (or both feet landing from a hop): the footstep system resolves the rest. */
+  private footfall(side: 0 | 1, land: boolean): void {
+    const s = this.player?.state;
+    if (!s || !this.audio) return;
+    const speed = Math.hypot(s.vx, s.vz);
+    const m = this.movement;
+    this.audio.footfall({
+      surface: s.surface,
+      side,
+      speed,
+      jog: speed > (m.walkSpeed + m.jogSpeed) / 2,
+      airC: this.options.airTemperature?.() ?? valleyView.airTemperature,
+      land,
+    });
   }
 
   private splash(): Promise<void> {
@@ -173,6 +291,15 @@ export class App {
       const go = () => {
         window.removeEventListener('pointerdown', go);
         window.removeEventListener('keydown', go);
+        // Audio may only start from a user gesture: this click.
+        if (this.wantsAudio() && !this.audioContext) {
+          try {
+            this.audioContext = new AudioContext({ latencyHint: 'interactive' });
+            void this.audioContext.resume();
+          } catch {
+            this.audioContext = null;
+          }
+        }
         resolve();
       };
       window.addEventListener('pointerdown', go);
@@ -200,9 +327,9 @@ export class App {
       invertY: this.settings.get('controls', 'invertY'),
       stickDeadZone: this.settings.get('controls', 'stickDeadZone'),
       jogToggle: this.settings.get('controls', 'jog') === 'toggle',
-      mouseRadiansPerPixel: rigTuning.mouseRadiansPerPixel,
-      stickRadiansPerSecond: rigTuning.stickRadiansPerSecond,
-      zoomStep: rigTuning.zoomStep,
+      mouseRadiansPerPixel: this.rigTuning.mouseRadiansPerPixel,
+      stickRadiansPerSecond: this.rigTuning.stickRadiansPerSecond,
+      zoomStep: this.rigTuning.zoomStep,
     };
   }
 
@@ -240,11 +367,14 @@ export class App {
       const p = this.player.pose(alpha, this.pose);
       const s = this.player.state;
       const speed = Math.hypot(s.vx, s.vz);
-      this.avatar.update(p.x, p.y, p.z, p.yaw, speed, dt);
+      if (s.grounded && !this.wasGrounded) this.footfall(0, true);
+      this.wasGrounded = s.grounded;
+      this.avatar.update(p.x, p.y, p.z, p.yaw, speed, s.grounded, dt);
       this.rig.update(dt, { x: p.x, y: p.y, z: p.z, yaw: p.yaw, speed }, this.actions ?? NO_LOOK, cam);
       this.actions = null;
       this.focus.set(p.x, p.y, p.z);
     }
+    if (this.fsm.current === 'playing') this.audio?.update(dt);
     this.valley.update(cam, dt);
     this.stage.followShadow(this.focus);
     this.stage.renderFrame(dt);

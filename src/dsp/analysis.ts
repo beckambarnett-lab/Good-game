@@ -1,6 +1,30 @@
 // Audio metrics used by the QA tools: I can't hear the game, so every render is measured.
 
+import { fft } from './fft.ts';
 import { gainToDb } from './util.ts';
+
+/**
+ * Spectral centroid (Hz): the magnitude-weighted mean frequency between 20 Hz and 16 kHz, over
+ * the whole buffer. How "bright" a short sound is.
+ */
+export function spectralCentroid(signal: Float32Array, sampleRate: number): number {
+  let n = 1;
+  while (n < signal.length) n <<= 1;
+  const re = new Float64Array(n);
+  const im = new Float64Array(n);
+  for (let i = 0; i < signal.length; i++) re[i] = signal[i] ?? 0;
+  fft(re, im);
+  let weighted = 0;
+  let total = 0;
+  for (let k = 1; k < n / 2; k++) {
+    const f = (k * sampleRate) / n;
+    if (f < 20 || f > 16000) continue;
+    const mag = Math.hypot(re[k] as number, im[k] as number);
+    weighted += f * mag;
+    total += mag;
+  }
+  return total > 0 ? weighted / total : 0;
+}
 
 export interface AudioMetrics {
   seconds: number;

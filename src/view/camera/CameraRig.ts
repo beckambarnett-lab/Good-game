@@ -70,6 +70,26 @@ export class CameraRig {
     this.recenter = on;
   }
 
+  /** Eases to a new orbit distance (clamped to the zoom range). */
+  setDistance(d: number): void {
+    this.wanted = Math.min(this.t.maxDistance, Math.max(this.t.minDistance, d));
+  }
+
+  /** Jumps straight behind a target (after a teleport), without easing across the valley. */
+  snap(target: RigTarget): void {
+    this.yaw = target.yaw;
+    const ty = target.y + this.headHeight - this.t.targetDrop;
+    for (const [s, v] of [
+      [this.fx, target.x],
+      [this.fy, ty],
+      [this.fz, target.z],
+    ] as const) {
+      s.value = v;
+      s.velocity = 0;
+    }
+    this.quiet = 0;
+  }
+
   /** Where the camera stands and what it looks at, after `dt` seconds of following `target`. */
   update(dt: number, target: RigTarget, input: RigInput, camera: PerspectiveCamera): void {
     const t = this.t;

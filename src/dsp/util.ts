@@ -79,6 +79,26 @@ export function lowpassCoeffs(f0: number, q: number, sampleRate: number) {
   };
 }
 
+/**
+ * High shelf with slope 1, exactly as Web Audio's BiquadFilterNode 'highshelf' computes it, so
+ * a brightness measured here in Node is what the browser plays.
+ */
+export function highShelfCoeffs(f0: number, gainDb: number, sampleRate: number) {
+  const a = 10 ** (gainDb / 40);
+  const w = (2 * Math.PI * f0) / sampleRate;
+  const cos = Math.cos(w);
+  const alpha = (Math.sin(w) / 2) * Math.SQRT2;
+  const k = 2 * Math.sqrt(a) * alpha;
+  const a0 = a + 1 - (a - 1) * cos + k;
+  return {
+    b0: (a * (a + 1 + (a - 1) * cos + k)) / a0,
+    b1: (-2 * a * (a - 1 + (a + 1) * cos)) / a0,
+    b2: (a * (a + 1 + (a - 1) * cos - k)) / a0,
+    a1: (2 * (a - 1 - (a + 1) * cos)) / a0,
+    a2: (a + 1 - (a - 1) * cos - k) / a0,
+  };
+}
+
 export type Biquad = ReturnType<typeof peakingCoeffs>;
 
 /** Run a biquad over the buffer in place (transposed direct form II). */

@@ -214,6 +214,100 @@ export const cameraRig: CameraRigTuning = {
   zoomStep: 0.8,
 };
 
+/** The placeholder walker's gait (the Blender character's clips replace the swing in M1). */
+export interface GaitTuning {
+  /** Metres per step at a walk and at a jog; with speed, these set the footstep cadence. */
+  walkStep: number;
+  jogStep: number;
+  /** Leg swing (rad) at a walk and at a jog, body bob (m) and forward lean at a jog (rad). */
+  walkSwing: number;
+  jogSwing: number;
+  bob: number;
+  jogLean: number;
+  /** Slower than this (m/s), feet don't sound (turning on the spot, settling). */
+  minStepSpeed: number;
+}
+
+export const gait: GaitTuning = {
+  walkStep: 1.4,
+  jogStep: 1.8,
+  walkSwing: 0.62,
+  jogSwing: 0.85,
+  bob: 0.035,
+  jogLean: 0.12,
+  minStepSpeed: 0.3,
+};
+
+/** Footsteps (Plan Part 6.8): level, variation and layers. */
+export interface FootstepTuning {
+  /** Step level (linear) at walking pace; slower steps fall toward `creepLevel` of it. */
+  level: number;
+  creepLevel: number;
+  /** Variation per step: pitch ±5 %, gain ±1.5 dB, left/right foot pan ±0.05. */
+  pitchJitter: number;
+  gainJitterDb: number;
+  footPan: number;
+  /** Jog steps are louder and brighter (+2 dB, +600 Hz tilt): a gain and a high shelf. */
+  jogGainDb: number;
+  jogShelfHz: number;
+  jogShelfDb: number;
+  /** Clothing rustle on every step, relative to the step (−12 dB). */
+  rustleDb: number;
+  /** Packed snow squeaks at or below this air temperature (°C); the squeak's level (dB). */
+  squeakBelowC: number;
+  squeakDb: number;
+  /** Landing from a hop: extra level (dB); the second foot follows after this many seconds. */
+  landGainDb: number;
+  landSecondFoot: number;
+}
+
+export const footsteps: FootstepTuning = {
+  level: 1,
+  creepLevel: 0.45,
+  pitchJitter: 0.05,
+  gainJitterDb: 1.5,
+  footPan: 0.05,
+  jogGainDb: 0.7,
+  jogShelfHz: 2500,
+  jogShelfDb: 5,
+  rustleDb: -12,
+  squeakBelowC: -15,
+  squeakDb: -4,
+  landGainDb: 3,
+  landSecondFoot: 0.045,
+};
+
+/** Sound Foundry: the seed the instrument banks render from, so every page plays the same piano. */
+export const foundry = { bankSeed: 20260924 };
+
+/** Bus reference levels (dB) at default settings (Plan Part 6.10; world SFX = 0 dB). */
+export const mixLevels = { sfx: 0, music: -8, ambience: -12, voice: -18, ui: -14 } as const;
+
+/**
+ * The valley's M0 music: now and then one 4-bar felt-piano phrase of the main theme, with rests
+ * between by the Music frequency setting (Plan Part 6.3). The full Director replaces it in M1.
+ */
+export interface ValleyMusicTuning {
+  /** Seconds after arriving before the first phrase. */
+  firstAfter: number;
+  /** Rest ranges (s) per Music frequency setting. */
+  rests: Readonly<Record<'often' | 'sometimes' | 'rarely', readonly [number, number]>>;
+  /** Which phrases may play: the answering phrases, which end home. */
+  phrases: readonly { section: 'A' | 'B'; index: number }[];
+  /** Fade-in of each phrase (s). */
+  fadeIn: number;
+}
+
+export const valleyMusic: ValleyMusicTuning = {
+  firstAfter: 8,
+  rests: { often: [20, 60], sometimes: [45, 150], rarely: [120, 300] },
+  phrases: [
+    { section: 'A', index: 1 },
+    { section: 'B', index: 1 },
+  ],
+  fadeIn: 0.05,
+};
+
 export interface ForestViewTuning {
   /** Distance (m) where LOD0 gives way to LOD1, and LOD1 to LOD2 (Plan Part 5.5: 40 / 120). */
   lodDistances: readonly [number, number];
@@ -258,6 +352,8 @@ export interface ValleyViewTuning {
   spawnYaw: number;
   /** World seed of the test scene, until New Game (M1) chooses one per save. */
   seed: number;
+  /** Air temperature (°C) until Weather (M1.7) drives it. */
+  airTemperature: number;
 }
 
 export const valleyView: ValleyViewTuning = {
@@ -268,6 +364,7 @@ export const valleyView: ValleyViewTuning = {
   spawnZ: -22,
   spawnYaw: Math.PI / 2,
   seed: 1847261,
+  airTemperature: -6,
 };
 
 /** Render budgets for the Medium preset (Plan Part 7.8), checked by `npm run shots`. */

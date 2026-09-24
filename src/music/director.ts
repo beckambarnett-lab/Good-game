@@ -39,7 +39,14 @@ export interface PerformOptions {
   mood: Mood;
   /** 1 = the piece's own tempo. */
   tempoScale?: number;
+  /** Perform one 4-bar phrase of a section instead of the whole piece (the valley's phrases). */
+  phrase?: { section: 'A' | 'B'; index: number };
+  /** Keep only these instruments; the melody moves to the first of them if its own isn't kept. */
+  only?: readonly InstrumentId[];
 }
+
+/** Bars in a phrase (Plan Part 6.3). */
+export const PHRASE_BARS = 4;
 
 type KeysPattern = 'waltz' | 'arp6' | 'rolled' | 'sparse' | 'arpUp';
 
@@ -77,9 +84,15 @@ export function perform(piece: PieceDef, opts: PerformOptions): Performance {
   const scale = MAJOR.map((i) => (i + tonicPc) % 12);
 
   // 1. Form.
-  const formChoice =
-    director.forms[rng.weightedIndex(director.forms.map((f) => f.weight))] ?? director.forms[0];
-  const form = [...formChoice.sections];
+  let form: string[];
+  if (opts.phrase) {
+    form = [opts.phrase.section];
+  } else {
+    const formChoice =
+      director.forms[rng.weightedIndex(director.forms.map((f) => f.weight))] ?? director.forms[0];
+    form = [...formChoice.sections];
+  }
+  const firstBar = opts.phrase ? opts.phrase.index * PHRASE_BARS : 0;
 
   // 2. Bar plans.
   const bars: BarPlan[] = [];
@@ -104,7 +117,10 @@ export function perform(piece: PieceDef, opts: PerformOptions): Performance {
     const def = piece.sections[key];
     const varied = section.length > 1;
     const t = makeTreatment(rng, mood, varied, false);
-    for (let i = 0; i < def.chords.length; i++) {
+    const kept = opts.only;
+    if (kept && t.melodyInst && !kept.includes(t.melodyInst)) t.melodyInst = kept[0] ?? null;
+    const lastBar = opts.phrase ? Math.min(def.chords.length, firstBar + PHRASE_BARS) : def.chords.length;
+    for (let i = firstBar; i < lastBar; i++) {
       let symbol = def.chords[i] as string;
       const subs = def.substitutions?.[i];
       if (t.substitute && subs && subs.length > 0 && rng.chance(director.substitutionChance))
@@ -202,7 +218,7 @@ export function perform(piece: PieceDef, opts: PerformOptions): Performance {
   bars.forEach((b, bi) => {
     const barT = barStarts[bi] ?? 0;
     const barLen = span(bi, 0, beats);
-    if (b.index === 0) markers.push({ t: barT, label: sectionLabel(b.section) });
+    if (b.index === 0 || (opts.phrase && bi === 0)) markers.push({ t: barT, label: sectionLabel(b.section) });
 
     // Pad: hold across bars with the same chord; re-voice with minimal motion on changes.
     if (b.chord.symbol !== padChordSymbol || padStart < 0 || barT - padStart > 7.5) {
@@ -241,7 +257,9 @@ export function perform(piece: PieceDef, opts: PerformOptions): Performance {
 
     // Melody.
     if (b.melody && b.treatment.melodyInst) {
-      const skipForBreath = !b.phraseEnd && b.index % 4 !== 0 && rng.chance(mood.breathChance);
+      // A lone phrase keeps its whole melody; breathing rests are for longer performances.
+      const skipForBreath =
+        !opts.phrase && !b.phraseEnd && b.index % 4 !== 0 && rng.chance(mood.breathChance);
       if (!skipForBreath) {
         const inst = b.treatment.melodyInst;
         // The music box already sounds an octave up; it never also takes the octave-up variation.
@@ -300,9 +318,11 @@ export function perform(piece: PieceDef, opts: PerformOptions): Performance {
   });
   flushPad(cursor);
 
-  events.sort((a, b) => a.t - b.t);
-  const duration = events.reduce((m, e) => Math.max(m, e.t + e.dur), 0) + 2;
-  return { seed: opts.seed, mood: opts.mood, form, events, markers, duration };
+  const only = opts.only;
+  const kept = only ? events.filter((e) => only.includes(e.inst)) : events;
+  kept.sort((a, b) => a.t - b.t);
+  const duration = kept.reduce((m, e) => Math.max(m, e.t + e.dur), 0) + 2;
+  return { seed: opts.seed, mood: opts.mood, form, events: kept, markers, duration };
 
   function plan(
     section: string,

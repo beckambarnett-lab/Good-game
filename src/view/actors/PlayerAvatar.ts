@@ -4,20 +4,14 @@
 
 import { Group, Mesh, MeshLambertMaterial } from 'three';
 import { Rng } from '../../core/rng.ts';
+import type { GaitTuning, MovementTuning } from '../../data/tuning.ts';
 import { blob, box, cylinder, merge } from '../geo/Joinery.ts';
 import { palette } from '../render/palette.ts';
 
-/** Metres per full gait cycle (two steps) at a walk; a jog lengthens it a little. */
-const STRIDE = 1.45;
-const JOG_STRIDE = 1.9;
-/** Leg swing (rad) at walking and jogging pace, body bob (m) and forward lean at a jog (rad). */
-const LEG_SWING = 0.5;
-const JOG_LEG_SWING = 0.75;
-const BOB = 0.035;
-const JOG_LEAN = 0.12;
-/** Speeds (m/s) that count as walking and as jogging. */
-const WALK = 3.4;
-const JOG = 5.2;
+/** Standing still, the legs ease back together at this rate per frame. */
+const SETTLE = 0.9;
+/** Below this speed (m/s) the figure counts as standing still. */
+const STILL = 0.05;
 
 export class PlayerAvatar {
   readonly root = new Group();
@@ -26,9 +20,14 @@ export class PlayerAvatar {
   private readonly arms: [Group, Group] = [new Group(), new Group()];
   private phase = 0;
   private breath = 0;
+  private readonly gait: GaitTuning;
+  private readonly move: MovementTuning;
   onFootfall: ((side: 0 | 1) => void) | null = null;
 
-  constructor(seed: number) {
+  /** Both tunings are read every frame, so live-tuned objects take effect at once. */
+  constructor(seed: number, gait: GaitTuning, move: MovementTuning) {
+    this.gait = gait;
+    this.move = move;
     const rng = new Rng(seed).fork('avatar');
     const mat = new MeshLambertMaterial({ vertexColors: true });
     const mesh = (geo: ReturnType<ReturnType<typeof merge>['toGeometry']>) => {
@@ -80,30 +79,38 @@ export class PlayerAvatar {
     this.root.add(this.body);
   }
 
-  /** Poses the figure at its interpolated position, animating the gait from ground speed. */
-  update(x: number, y: number, z: number, yaw: number, speed: number, dt: number): void {
+  /**
+   * Poses the figure at its interpolated position, animating the gait from ground speed. A heel
+   * strikes (and `onFootfall` fires) each half gait cycle, only while grounded.
+   */
+  update(x: number, y: number, z: number, yaw: number, speed: number, grounded: boolean, dt: number): void {
+    const g = this.gait;
+    const walk = this.move.walkSpeed;
+    const jog = this.move.jogSpeed;
     this.root.position.set(x, y, z);
     this.root.rotation.y = yaw;
-    const jogMix = Math.min(1, Math.max(0, (speed - WALK) / (JOG - WALK)));
-    const stride = STRIDE + (JOG_STRIDE - STRIDE) * jogMix;
+    const jogMix = Math.min(1, Math.max(0, (speed - walk) / Math.max(0.01, jog - walk)));
+    const step = g.walkStep + (g.jogStep - g.walkStep) * jogMix;
     const before = this.phase;
-    this.phase += (speed * dt * Math.PI * 2) / stride;
-    // A heel strikes each time the phase passes a half-cycle.
+    // One gait cycle (2π) is two steps.
+    this.phase += (speed * dt * Math.PI) / step;
     const halfBefore = Math.floor(before / Math.PI);
     const halfNow = Math.floor(this.phase / Math.PI);
-    if (halfNow !== halfBefore && speed > 0.3) this.onFootfall?.((halfNow % 2) as 0 | 1);
-    if (speed < 0.05) this.phase *= 0.9; // settle the legs together when standing
+    if (halfNow !== halfBefore && grounded && speed > g.minStepSpeed) {
+      this.onFootfall?.((halfNow % 2) as 0 | 1);
+    }
+    if (speed < STILL) this.phase *= SETTLE;
 
-    const amount = Math.min(1, speed / WALK);
-    const swing = (LEG_SWING + (JOG_LEG_SWING - LEG_SWING) * jogMix) * amount;
+    const amount = Math.min(1, speed / walk);
+    const swing = (g.walkSwing + (g.jogSwing - g.walkSwing) * jogMix) * amount;
     const s = Math.sin(this.phase);
     this.legs[0].rotation.x = s * swing;
     this.legs[1].rotation.x = -s * swing;
     this.arms[0].rotation.x = -s * swing * 0.8;
     this.arms[1].rotation.x = s * swing * 0.8;
     this.breath += dt;
-    const bob = Math.abs(Math.cos(this.phase)) * BOB * amount;
+    const bob = Math.abs(Math.cos(this.phase)) * g.bob * amount;
     this.body.position.y = 0.78 + bob + Math.sin(this.breath * 1.6) * 0.006;
-    this.body.rotation.x = JOG_LEAN * jogMix;
+    this.body.rotation.x = g.jogLean * jogMix;
   }
 }
