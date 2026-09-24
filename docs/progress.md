@@ -11,7 +11,7 @@
 
 | Lab | Status | Link |
 |---|---|---|
-| #1 Soundtrack: Wrenhollow Lullaby | not started | — |
+| #1 Soundtrack: Wrenhollow Lullaby | **in review** | [Lab](https://claude.ai/artifact/JiveVgK6AeMt8GvXXvoAcu) · `docs/reviews/soundtrack-lullaby.md` |
 | #2 Felling minigame (swinging bar) | not started | — |
 
 ## Known issues / open questions
