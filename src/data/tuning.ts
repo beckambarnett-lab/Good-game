@@ -32,3 +32,27 @@ export const felling: FellingTuning = {
   missLockout: 0.35,
   axeGreenBonus: [0, 0.03, 0.06, 0.09, 0.11],
 };
+
+export interface ClockTuning {
+  /** Real seconds per game hour during the day window and at night (Standard pace). */
+  dayHourSeconds: number;
+  nightHourSeconds: number;
+  /** Day window [start, end) in game hours; outside it the night rate applies. */
+  dayStartHour: number;
+  dayEndHour: number;
+  /** Pace multipliers for the Day length setting. */
+  pace: Record<'relaxed' | 'standard' | 'brisk', number>;
+  daysPerWinter: number;
+  /** Game starts on Day 1 (Monday) at this hour; the clock is frozen during Hal's intro. */
+  startHour: number;
+}
+
+export const clock: ClockTuning = {
+  dayHourSeconds: 90,
+  nightHourSeconds: 45,
+  dayStartHour: 6,
+  dayEndHour: 22,
+  pace: { relaxed: 1.33, standard: 1, brisk: 0.67 },
+  daysPerWinter: 56,
+  startHour: 15,
+};
