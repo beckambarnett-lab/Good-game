@@ -5,6 +5,14 @@
 
 ## Status log
 - 2026-09-24: Complete development plan written (`docs/plan/`). No code yet.
+- 2026-09-24: User switched to the review-gated Lab workflow and designed the swinging-bar felling minigame. `main` created.
+
+## Review queue (Plan Part 8.0)
+
+| Lab | Status | Link |
+|---|---|---|
+| #1 Soundtrack: Wrenhollow Lullaby | not started | — |
+| #2 Felling minigame (swinging bar) | not started | — |
 
 ## Known issues / open questions
 - None yet.

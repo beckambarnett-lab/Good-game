@@ -24,6 +24,7 @@
    4. Must-fixes block the next milestone.
 
 ## Hard rules
+- **Review gate:** feel-critical features (music, SFX, ambience, minigames, controls, camera, looks) are built as a standalone Lab first. They enter the game **only after the user says "approved"** (Plan Part 8.0). Everything else is verified with tests.
 - **Pillars:** tactile satisfaction, calm, a living town, gentle progression. Every feature is judged against them.
 - **Polish bar:** no feature is done without animation, particles, layered sound and a world response (Plan Part 9.1). The vertical slice (M1) must already feel finished.
 - **No paid, ripped or copyrighted assets.**

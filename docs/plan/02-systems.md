@@ -343,19 +343,15 @@ Only the Ridge has XL oaks.
 
 #### 2.5.3 Felling
 - **Equip the axe and face a tree** (within 2.4 m). A **fall-line preview** (dotted chalk line, 1.1× tree height) points away from you. It turns red and shows a tiny icon (shed, truck, person) if the fall zone intersects a protected thing. Walk around to change the direction; red swings only chip bark.
-- **Swinging:** hold or tap LMB. Each swing does `P × rhythm` work against the tree's `W = diameter_cm × hardness`.
-  - **Rhythm:** a press during the last 0.25 s of the previous swing's recovery. A soft wood-knock tick marks it, and the tree shivers at its apex. It gives ×1.35 power and a 0.8× wind-up.
-  - Holding LMB auto-swings at normal cadence, which is fine and relaxing.
-
-| Axe | Power P | Swing cycle | Notes |
-|---|---|---|---|
-| Old Axe (start) | 3.0 | 1.00 s | Dull thud, few chips |
-| Old Axe, sharpened | 3.75 | 0.95 s | Adds a bright "tink" ring layer; bigger chips |
-| Forester's Axe | 5.1 | 0.90 s | Deeper thock; unlocks oak |
-| Longhorn Felling Axe | 7.2 | 0.95 s | Big arc, heavy whoosh, stronger camera kick |
-| Old Faithful (Hal arc) | 7.8 | 0.90 s | Engraved head; a soft chime on rhythm hits |
-
-  - Example: a medium pine (W 30) takes 10 swings with the Old Axe (8 with rhythm), 6/5 with the Forester's Axe, and 5/4 with the Longhorn.
+- **Chopping minigame (user design, 2026-09-24; tuned in Lab #2 before integration):**
+  - A **swinging bar** appears beside the tree. It is hand-drawn, with a **green zone in the centre**, and a marker sweeps back and forth.
+  - Press LMB or Space while the marker is in the green to land a **chop**. A miss is a soft glancing *tok* with no progress and no penalty; the marker keeps swinging.
+  - **3 chops fell any tree.**
+  - **Bar speed depends on tree size:** bigger trees swing the bar **slower**, smaller trees **faster**. Starting sweep periods: small 0.8 s, medium 1.2 s, large 1.7 s, old oak 2.0 s.
+  - Green zone width starts at 22% of the bar. The centre 6% is a "perfect" band: extra sparkle and a chime, no extra gameplay effect.
+  - **Axe tiers** (proposal, to confirm in review) widen the green zone: Old 22%, sharpened 25%, Forester's 28%, Longhorn 31%, Old Faithful 33%. Oak needs the Forester's Axe or better.
+  - **Relaxed mode** (accessibility): the marker slows to 40% inside the green zone, or auto-hits.
+  - All values live in `tuning.ts` and are set by the user in the Felling Lab.
 - **Swing feedback:**
   - Anticipation squash on the wind-up.
   - 50 ms hit-stop and bark-chip burst (species-coloured).
