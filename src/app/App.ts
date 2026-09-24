@@ -32,6 +32,7 @@ import { CameraRig } from '../view/camera/CameraRig.ts';
 import { generateTerrainInWorker } from '../view/geo/terrain/TerrainClient.ts';
 import { Input } from '../view/input/Input.ts';
 import type { ActionState, InputOptions } from '../view/input/InputMapper.ts';
+import { resolveQuality } from '../view/render/Quality.ts';
 import { type PassStats, Stage } from '../view/render/Stage.ts';
 import { ValleyScene } from '../view/scenes/ValleyScene.ts';
 import { browserFrameClock, GameLoop } from './GameLoop.ts';
@@ -51,6 +52,21 @@ export interface ShotStatus {
 }
 
 const fpsCapOf = (v: '30' | '60' | 'uncapped'): number | null => (v === 'uncapped' ? null : Number(v));
+
+/** Graphics settings that change the quality level (the rest apply on their own). */
+const QUALITY_KEYS: ReadonlySet<string> = new Set([
+  'preset',
+  'renderScaleMode',
+  'renderScalePercent',
+  'shadows',
+  'ambientOcclusion',
+  'antiAliasing',
+  'bloom',
+  'drawDistance',
+  'snowDensity',
+  'forestDensity',
+  'fpsCap',
+]);
 
 export interface AppOptions {
   /** Tuning objects, read live (the Winter Walk lab passes copies bound to its sliders). */
@@ -118,6 +134,7 @@ export class App {
     this.visibility.events.on('visible', () => this.applyTraits());
     this.settings.onChange((group, key) => {
       if (group === 'gameplay' && key === 'timePassesWhileTalking') this.applyTraits();
+      if (group === 'graphics' && QUALITY_KEYS.has(key)) this.applyQuality();
       if (group === 'graphics' && key === 'fpsCap' && this.loop) {
         this.loop.fpsCap = fpsCapOf(this.settings.get('graphics', 'fpsCap'));
       }
@@ -193,7 +210,12 @@ export class App {
       appTuning.maxRenderDeltaSeconds,
     );
     this.loop.fpsCap = shot ? null : fpsCapOf(this.settings.get('graphics', 'fpsCap'));
+    this.applyQuality();
+    // Frame the first view, then compile every shader it needs before play starts.
     if (shot) this.frameShot(shot);
+    else this.frameStart();
+    const warm = await stage.prewarm();
+    console.info(`Shaders pre-warmed in ${warm.toFixed(0)} ms`);
     this.say('');
     this.fsm.go('playing');
     this.loop.start();
@@ -349,6 +371,24 @@ export class App {
     this.player.setIntent(x, z, a.jog, a.pressed.has('jump'));
   }
 
+  /** Applies the graphics settings' quality level; shots hold a fixed render scale. */
+  private applyQuality(): void {
+    if (!this.stage) return;
+    const q = resolveQuality(this.settings.snapshot().graphics);
+    if (this.shot) q.dynamic = false;
+    this.stage.setQuality(q, fpsCapOf(this.settings.get('graphics', 'fpsCap')));
+  }
+
+  /** Places the camera behind the walker and settles LODs, as the first frame will see them. */
+  private frameStart(): void {
+    if (!this.stage || !this.valley || !this.player || !this.rig) return;
+    const s = this.player.state;
+    this.rig.update(0, { x: s.x, y: s.y, z: s.z, yaw: s.yaw, speed: 0 }, NO_LOOK, this.stage.camera);
+    this.valley.settle(this.stage.camera);
+    this.focus.set(s.x, s.y, s.z);
+    this.stage.followShadow(this.focus);
+  }
+
   private frameShot(shot: ShotDef): void {
     if (!this.stage || !this.valley) return;
     const cam = this.stage.camera;
@@ -358,6 +398,7 @@ export class App {
     cam.lookAt(tx, this.valley.groundAt(tx, tz) + th, tz);
     this.valley.settle(cam);
     this.focus.set(ex, this.valley.groundAt(ex, ez), ez);
+    this.stage.followShadow(this.focus);
   }
 
   private render(alpha: number, dt: number): void {

@@ -4,6 +4,7 @@
 **Last updated:** 2026-09-24
 
 ## Status log
+- 2026-09-24: Render core, part 1: Quality presets (the Plan 5.10 table, resolved from the graphics settings, Custom included) applied to anti-aliasing (MSAA/SMAA), bloom, shadows and render scale; dynamic resolution with a GPU timer or a frame-interval fallback (ADR 0003); shaders pre-warmed from the first view before play.
 - 2026-09-24: Lab #3 **Winter walk** published for review: the real valley with live sliders for walking, camera and footsteps; footsteps on powder, packed snow and ice (plus the cold squeak and a coat rustle) through a seeded footstep planner; the valley's occasional 4-bar felt-piano phrase (Director phrase mode). Both sounds stay lab-only until approved. `npm run audio` now measures every SFX variant and renders a walk.
 - 2026-09-24: Complete development plan written (`docs/plan/`).
 - 2026-09-24: User switched to the review-gated Lab workflow and designed the swinging-bar felling minigame. `main` created; draft PR open, CI green.
@@ -59,12 +60,12 @@ Plan: `docs/plan/08-roadmap.md` → M0.
   - [x] Seeded RNG with forks (streams saved and restored)
   - [x] Sim skeleton: `Sim.ts` system registry, fixed step, `advance`, serialize; `ClockSystem`
 - [ ] Render core
-  - [ ] Renderer (Stage done), Quality presets, DynamicResolution
+  - [x] Renderer (Stage), Quality presets, DynamicResolution (ADR 0003; cascades, N8AO and forest density rows wait on their systems)
   - [ ] PostFX (bloom, tone map, vignette done; Grade, grain to come)
   - [ ] HearthMaterial v0
   - [x] Sky v0
   - [ ] Lights (hemi + sun done) + pool
-  - [ ] Prewarm
+  - [x] Prewarm (`compileAsync` + one full frame from the first view)
 - [ ] World core
   - [x] TerrainGen v0: bible layout, spline roads with design grades, bridges, creek, rail (ADR 0001)
   - [x] Heightfield queries (bilinear height, normal, slope)

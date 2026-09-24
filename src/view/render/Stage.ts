@@ -1,11 +1,14 @@
 // Stage: renderer, scene, camera, winter lighting, fog and the post-processing chain
-// (bloom → neutral tone mapping → vignette), with resize handling and a frame loop.
+// (bloom → neutral tone mapping → vignette, SMAA on Low), with resize handling and a frame loop.
+// Quality presets set the anti-aliasing, shadows, bloom and render scale; dynamic resolution keeps
+// the frame rate by stepping the render scale (Plan Part 5.10).
 
 import {
   BloomEffect,
   EffectComposer,
   EffectPass,
   RenderPass,
+  SMAAEffect,
   ToneMappingEffect,
   ToneMappingMode,
   VignetteEffect,
@@ -16,13 +19,21 @@ import {
   FogExp2,
   HalfFloatType,
   HemisphereLight,
+  type Material,
+  type Mesh,
+  PCFShadowMap,
   PCFSoftShadowMap,
   PerspectiveCamera,
   Scene,
   Vector3,
   WebGLRenderer,
 } from 'three';
+import type { ShadowSpec } from '../../data/quality.ts';
+import { dynamicResolution, postFx } from '../../data/tuning.ts';
+import { DynamicResolution } from './DynamicResolution.ts';
+import { GpuTimer } from './GpuTimer.ts';
 import { palette } from './palette.ts';
+import { defaultQuality, pixelRatioFor, type ResolvedQuality } from './Quality.ts';
 import { Sky } from './Sky.ts';
 import { shared } from './sharedUniforms.ts';
 
@@ -45,6 +56,10 @@ export interface PassStats {
 
 const DEFAULT_FOG_DENSITY = 0.012;
 const DEFAULT_FAR = 900;
+/** Frame-rate target when uncapped (Plan Part 7.8: 60 fps). */
+const DEFAULT_TARGET_FPS = 60;
+/** A GPU timer that hasn't answered for this long (s) is treated as missing. */
+const GPU_TIMER_PATIENCE = 2;
 
 export class Stage {
   readonly renderer: WebGLRenderer;
@@ -54,6 +69,13 @@ export class Stage {
   readonly hemi: HemisphereLight;
   readonly sky: Sky;
   private readonly composer: EffectComposer;
+  private effectPasses: EffectPass[] = [];
+  private quality: ResolvedQuality;
+  private readonly dynres: DynamicResolution;
+  private readonly gpuTimer: GpuTimer;
+  private gpuSilence = 0;
+  private unmeasured = 0;
+  private targetMs = 1000 / DEFAULT_TARGET_FPS;
   private readonly host: HTMLElement;
   private last = performance.now();
   private readonly updaters: ((dt: number, t: number) => void)[] = [];
@@ -72,10 +94,16 @@ export class Stage {
       powerPreference: 'high-performance',
       stencil: false,
     });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = PCFSoftShadowMap;
     host.appendChild(this.renderer.domElement);
+    this.gpuTimer = new GpuTimer(this.renderer.getContext() as WebGL2RenderingContext);
+    this.quality = defaultQuality();
+    this.dynres = new DynamicResolution(
+      dynamicResolution,
+      this.quality.autoScaleFloor,
+      this.quality.renderScale,
+    );
 
     this.camera = new PerspectiveCamera(50, 1, 0.1, options.far ?? DEFAULT_FAR);
     this.scene.background = new Color(palette.skyHorizon);
@@ -91,12 +119,8 @@ export class Stage {
     this.sun = new DirectionalLight(palette.sun, 2.4 * exposure);
     this.sun.position.copy(this.sunOffset);
     this.sun.castShadow = true;
-    this.sun.shadow.mapSize.set(2048, 2048);
+    // Map size and box width come from the quality level (applyShadows).
     const s = this.sun.shadow.camera;
-    s.left = -18;
-    s.right = 18;
-    s.top = 18;
-    s.bottom = -18;
     s.near = 1;
     s.far = 80;
     this.sun.shadow.bias = -0.0004;
@@ -110,22 +134,122 @@ export class Stage {
 
     this.composer = new EffectComposer(this.renderer, { frameBufferType: HalfFloatType, multisampling: 4 });
     this.composer.addPass(new RenderPass(this.scene, this.camera));
-    this.composer.addPass(
-      new EffectPass(
-        this.camera,
-        new BloomEffect({
-          intensity: 0.45,
-          luminanceThreshold: 0.9,
-          luminanceSmoothing: 0.2,
-          mipmapBlur: true,
-        }),
-        new ToneMappingEffect({ mode: ToneMappingMode.NEUTRAL }),
-        new VignetteEffect({ darkness: 0.28, offset: 0.35 }),
-      ),
-    );
+    this.buildPost(this.quality);
+    this.applyShadows(this.quality.shadow);
 
     window.addEventListener('resize', () => this.resize());
     this.resize();
+  }
+
+  /** The render scale dynamic resolution has settled on (1 = the preset's full resolution). */
+  get renderScale(): number {
+    return this.dynres.scale;
+  }
+
+  /** Whether frame cost comes from the GPU timer (else the frame interval). */
+  get gpuTimed(): boolean {
+    return this.gpuTimer.available && this.gpuSilence < GPU_TIMER_PATIENCE;
+  }
+
+  /**
+   * Applies a resolved quality level: anti-aliasing, bloom, shadows and the render scale range.
+   * `fpsCap` is the frame-rate target dynamic resolution holds when judging by frame interval.
+   */
+  setQuality(q: ResolvedQuality, fpsCap: number | null): void {
+    const before = this.quality;
+    this.quality = q;
+    this.targetMs = 1000 / (fpsCap ?? DEFAULT_TARGET_FPS);
+    if (before.antiAliasing !== q.antiAliasing || before.bloom !== q.bloom) this.buildPost(q);
+    this.applyShadows(q.shadow);
+    this.dynres.setRange(q.dynamic ? q.autoScaleFloor : q.renderScale, q.renderScale);
+    this.resize();
+  }
+
+  /**
+   * Compiles every shader the scene needs before play (Plan Part 5.9), then draws one full frame
+   * so the shadow depth and post-processing programs compile too. Returns the time taken (ms).
+   */
+  async prewarm(): Promise<number> {
+    const t0 = performance.now();
+    await this.renderer.compileAsync(this.scene, this.camera);
+    this.composer.render(0);
+    return performance.now() - t0;
+  }
+
+  private buildPost(q: ResolvedQuality): void {
+    for (const pass of this.effectPasses) {
+      this.composer.removePass(pass);
+      pass.dispose();
+    }
+    const effects = [];
+    if (q.bloom !== 'off') {
+      const cheap = q.bloom === 'cheap' ? postFx.cheapBloom : null;
+      effects.push(
+        new BloomEffect({
+          intensity: postFx.bloom.intensity,
+          luminanceThreshold: postFx.bloom.threshold,
+          luminanceSmoothing: postFx.bloom.smoothing,
+          mipmapBlur: true,
+          ...(cheap ? { levels: cheap.levels, resolutionScale: cheap.resolutionScale } : {}),
+        }),
+      );
+    }
+    effects.push(
+      new ToneMappingEffect({ mode: ToneMappingMode.NEUTRAL }),
+      new VignetteEffect({ darkness: postFx.vignette.darkness, offset: postFx.vignette.offset }),
+    );
+    this.effectPasses = [new EffectPass(this.camera, ...effects)];
+    // SMAA works on the finished image, in its own pass after the grade.
+    if (q.antiAliasing === 'smaa') this.effectPasses.push(new EffectPass(this.camera, new SMAAEffect()));
+    for (const pass of this.effectPasses) this.composer.addPass(pass);
+    this.composer.multisampling = q.antiAliasing === 'msaa4' ? 4 : 0;
+  }
+
+  /** Shadow map size, box and filter for a quality level (cascades arrive with CSM; ADR 0003). */
+  private applyShadows(spec: ShadowSpec | null): void {
+    const r = this.renderer;
+    const type = spec?.soft === false ? PCFShadowMap : PCFSoftShadowMap;
+    const programsChange = r.shadowMap.enabled !== (spec !== null) || r.shadowMap.type !== type;
+    r.shadowMap.enabled = spec !== null;
+    this.sun.castShadow = spec !== null;
+    if (spec) {
+      r.shadowMap.type = type;
+      const shadow = this.sun.shadow;
+      if (shadow.mapSize.x !== spec.mapSize) {
+        shadow.mapSize.set(spec.mapSize, spec.mapSize);
+        shadow.map?.dispose();
+        shadow.map = null;
+      }
+      const half = spec.distance / 2;
+      Object.assign(shadow.camera, { left: -half, right: half, top: half, bottom: -half });
+      shadow.camera.updateProjectionMatrix();
+    }
+    if (programsChange) {
+      // Shadow filtering is compiled into every lit material's shader.
+      this.scene.traverse((o) => {
+        const m = (o as Mesh).material as Material | Material[] | undefined;
+        for (const mat of Array.isArray(m) ? m : m ? [m] : []) mat.needsUpdate = true;
+      });
+    }
+  }
+
+  /** Feeds this frame's cost to dynamic resolution and applies any step. */
+  private adaptResolution(dt: number, gpuMs: number | null): void {
+    if (!this.quality.dynamic) return;
+    this.unmeasured += dt;
+    let changed = false;
+    if (this.gpuTimed) {
+      if (gpuMs === null) {
+        this.gpuSilence += dt;
+        return;
+      }
+      this.gpuSilence = 0;
+      changed = this.dynres.sample(this.unmeasured, gpuMs, 'gpu', this.targetMs);
+    } else {
+      changed = this.dynres.sample(dt, dt * 1000, 'interval', this.targetMs);
+    }
+    this.unmeasured = 0;
+    if (changed) this.resize();
   }
 
   onFrame(fn: (dt: number, t: number) => void): void {
@@ -138,7 +262,11 @@ export class Stage {
     shared.uTime.value = this.elapsed;
     for (const u of this.updaters) u(dt, this.elapsed);
     this.sky.position.copy(this.camera.position);
+    const gpuMs = this.gpuTimer.poll();
+    this.gpuTimer.begin();
     this.composer.render(dt);
+    this.gpuTimer.end();
+    this.adaptResolution(dt, gpuMs);
   }
 
   /** Stand-alone loop for Labs; the game drives `renderFrame` from its own GameLoop. */
@@ -202,6 +330,10 @@ export class Stage {
   resize(): void {
     const w = this.host.clientWidth || window.innerWidth;
     const h = this.host.clientHeight || window.innerHeight;
+    const q = this.quality;
+    this.renderer.setPixelRatio(
+      pixelRatioFor(w, h, window.devicePixelRatio, q.maxMegapixels, this.dynres.scale),
+    );
     this.renderer.setSize(w, h, false);
     this.composer.setSize(w, h);
     this.camera.aspect = w / h;

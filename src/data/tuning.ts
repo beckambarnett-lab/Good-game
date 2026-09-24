@@ -367,6 +367,57 @@ export const valleyView: ValleyViewTuning = {
   airTemperature: -6,
 };
 
+/**
+ * Dynamic resolution (Plan Part 5.10): with a GPU timer, step the render scale down when frames
+ * average over 15.5 ms for a second and back up after 3 s under 13 ms. Without one, the frame
+ * interval against the frame-rate target stands in, and a step up that is quickly undone makes
+ * the next recovery wait twice as long, so the scale doesn't hunt.
+ */
+export interface DynamicResolutionTuning {
+  dropAboveMs: number;
+  recoverBelowMs: number;
+  /** Averaging window and the calm needed before stepping back up (s). */
+  windowSeconds: number;
+  recoverAfter: number;
+  /** Longest recovery wait after repeated retreats (s). */
+  maxRecoverAfter: number;
+  /** A step down within this many seconds of a step up counts as a retreat. */
+  retreatWindow: number;
+  step: number;
+  /** Frame-interval fallback: drop and recover thresholds as multiples of the target interval. */
+  intervalDropRatio: number;
+  intervalRecoverRatio: number;
+  /** Ignore this long after loading or a quality change (shader compiles, streaming). */
+  settleSeconds: number;
+}
+
+export const dynamicResolution: DynamicResolutionTuning = {
+  dropAboveMs: 15.5,
+  recoverBelowMs: 13,
+  windowSeconds: 1,
+  recoverAfter: 3,
+  maxRecoverAfter: 48,
+  retreatWindow: 4,
+  step: 0.05,
+  intervalDropRatio: 1.06,
+  intervalRecoverRatio: 1.01,
+  settleSeconds: 2,
+};
+
+/** Post-processing (Plan Part 5.10), until the Grade and time-of-day key frames drive it (M1). */
+export interface PostFxTuning {
+  bloom: { intensity: number; threshold: number; smoothing: number };
+  /** Low preset: fewer blur levels at a lower resolution. */
+  cheapBloom: { levels: number; resolutionScale: number };
+  vignette: { darkness: number; offset: number };
+}
+
+export const postFx: PostFxTuning = {
+  bloom: { intensity: 0.45, threshold: 0.9, smoothing: 0.2 },
+  cheapBloom: { levels: 4, resolutionScale: 0.35 },
+  vignette: { darkness: 0.28, offset: 0.35 },
+};
+
 /** Render budgets for the Medium preset (Plan Part 7.8), checked by `npm run shots`. */
 export interface RenderBudget {
   mainCalls: number;
