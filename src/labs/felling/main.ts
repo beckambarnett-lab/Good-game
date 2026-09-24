@@ -375,7 +375,9 @@ $<HTMLButtonElement>('begin').addEventListener('click', async () => {
 (window as unknown as { __felling: unknown }).__felling = {
   marker: () => state.marker,
   inGreen: () =>
-    state.lock === 0 && !cutter.busy && Math.abs(state.marker - 0.5) < greenWidth(tuning, axeTier()) / 2 - 0.02,
+    state.lock === 0 &&
+    !cutter.busy &&
+    Math.abs(state.marker - 0.5) < greenWidth(tuning, axeTier()) / 2 - 0.02,
   chops: () => state.chops,
   standing: () => tree.standing,
   landed: () => tree.landed,

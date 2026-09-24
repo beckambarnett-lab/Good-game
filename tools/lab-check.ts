@@ -69,7 +69,9 @@ const shot = (suffix: string) =>
 if (name === 'felling') {
   type Hook = { inGreen(): boolean; chops(): number; standing(): boolean; landed(): boolean; press(): void };
   await page.click('#begin');
-  await page.waitForFunction(() => document.getElementById('start')?.hidden === true, null, { timeout: 60_000 });
+  await page.waitForFunction(() => document.getElementById('start')?.hidden === true, null, {
+    timeout: 60_000,
+  });
   await page.waitForTimeout(1500);
   await shot('-1-ready');
   for (let i = 0; i < 3; i++) {
