@@ -64,7 +64,35 @@ if (name === 'music') {
 }
 
 mkdirSync(join(root, 'artifacts', 'labs'), { recursive: true });
-await page.screenshot({ path: join(root, 'artifacts', 'labs', `${name}.png`), fullPage: true });
+const shot = (suffix: string) =>
+  page.screenshot({ path: join(root, 'artifacts', 'labs', `${name}${suffix}.png`), fullPage: true });
+if (name === 'felling') {
+  type Hook = { inGreen(): boolean; chops(): number; standing(): boolean; landed(): boolean; press(): void };
+  await page.click('#begin');
+  await page.waitForFunction(() => document.getElementById('start')?.hidden === true, null, { timeout: 60_000 });
+  await page.waitForTimeout(1500);
+  await shot('-1-ready');
+  for (let i = 0; i < 3; i++) {
+    await page.waitForFunction(() => (window as unknown as { __felling: Hook }).__felling.inGreen(), null, {
+      timeout: 20_000,
+      polling: 5,
+    });
+    await page.evaluate(() => (window as unknown as { __felling: Hook }).__felling.press());
+    await page.waitForTimeout(i === 0 ? 120 : 700);
+    if (i === 0) await shot('-2-chop');
+  }
+  const chops = await page.evaluate(() => (window as unknown as { __felling: Hook }).__felling.chops());
+  console.log('Chops landed:', chops);
+  ok = chops === 3;
+  await page.waitForTimeout(1300);
+  await shot('-3-falling');
+  await page.waitForFunction(() => (window as unknown as { __felling: Hook }).__felling.landed(), null, {
+    timeout: 90_000,
+  });
+  await page.waitForTimeout(250);
+  await shot('-4-landed');
+}
+await shot('');
 await browser.close();
 server.close();
 

@@ -1,28 +1,27 @@
-// Renders instrument banks using a small worker pool, falling back to the main thread (in
-// yielding chunks) if workers are unavailable, e.g. inside a restrictive sandbox.
+// Renders instrument banks and SFX variants using a small worker pool, falling back to the main
+// thread (in yielding chunks) if workers are unavailable, e.g. inside a restrictive sandbox.
 
 import {
   type InstrumentBank,
   type InstrumentId,
   renderZone,
   sampleRateOf,
-  type ZoneJob,
   zoneJobs,
 } from '../../dsp/bank.ts';
+import { renderSfx, SFX_VARIANTS, type SfxId } from '../../dsp/sfx/recipes.ts';
+import type { FoundryJob } from '../../workers/foundry.worker.ts';
 
 export type Progress = (done: number, total: number) => void;
 
-export async function renderBanks(
-  instruments: readonly InstrumentId[],
-  seed: number,
-  onProgress?: Progress,
-): Promise<Map<InstrumentId, InstrumentBank>> {
-  const jobs = instruments.flatMap((id) => zoneJobs(id, seed));
-  // Render the most-used instrument first so playback can start sooner in the future.
-  const results = new Array<Float32Array | undefined>(jobs.length);
-  let done = 0;
-  const report = () => onProgress?.(++done, jobs.length);
+function renderLocal(w: FoundryJob): Float32Array {
+  return w.kind === 'zone' ? renderZone(w.job) : renderSfx(w.id, w.variant);
+}
 
+/** Render a list of jobs, in parallel where possible. Results keep the input order. */
+export async function renderJobs(work: FoundryJob[], onProgress?: Progress): Promise<Float32Array[]> {
+  const results = new Array<Float32Array | undefined>(work.length);
+  let done = 0;
+  const report = () => onProgress?.(++done, work.length);
   let workers: Worker[] = [];
   try {
     const count = Math.max(1, Math.min(4, (navigator.hardwareConcurrency || 2) - 1));
@@ -30,24 +29,30 @@ export async function renderBanks(
       { length: count },
       () => new Worker(new URL('../../workers/foundry.worker.ts', import.meta.url), { type: 'module' }),
     );
-    await runWithWorkers(workers, jobs, results, report);
+    await runWithWorkers(workers, work, results, report);
   } catch {
-    workers.forEach((w) => {
-      w.terminate();
-    });
-    workers = [];
-    for (let i = 0; i < jobs.length; i++) {
+    for (let i = 0; i < work.length; i++) {
       if (results[i]) continue;
-      results[i] = renderZone(jobs[i] as ZoneJob);
+      results[i] = renderLocal(work[i] as FoundryJob);
       report();
       await new Promise((r) => setTimeout(r, 0));
     }
   } finally {
-    workers.forEach((w) => {
-      w.terminate();
-    });
+    for (const w of workers) w.terminate();
   }
+  return results as Float32Array[];
+}
 
+export async function renderBanks(
+  instruments: readonly InstrumentId[],
+  seed: number,
+  onProgress?: Progress,
+): Promise<Map<InstrumentId, InstrumentBank>> {
+  const jobs = instruments.flatMap((id) => zoneJobs(id, seed));
+  const data = await renderJobs(
+    jobs.map((job) => ({ kind: 'zone', job })),
+    onProgress,
+  );
   const banks = new Map<InstrumentId, InstrumentBank>();
   jobs.forEach((job, i) => {
     let bank = banks.get(job.instrument);
@@ -60,15 +65,34 @@ export async function renderBanks(
       };
       banks.set(job.instrument, bank);
     }
-    const data = results[i];
-    if (data) bank.zones.push({ midi: job.midi, velocity: job.velocity, data });
+    const d = data[i];
+    if (d) bank.zones.push({ midi: job.midi, velocity: job.velocity, data: d });
   });
   return banks;
 }
 
+export async function renderSfxBank(
+  ids: readonly SfxId[],
+  onProgress?: Progress,
+): Promise<Map<SfxId, Float32Array[]>> {
+  const work: FoundryJob[] = ids.flatMap((id) =>
+    Array.from({ length: SFX_VARIANTS[id] }, (_, variant) => ({ kind: 'sfx' as const, id, variant })),
+  );
+  const data = await renderJobs(work, onProgress);
+  const out = new Map<SfxId, Float32Array[]>();
+  work.forEach((w, i) => {
+    if (w.kind !== 'sfx') return;
+    const list = out.get(w.id) ?? [];
+    const d = data[i];
+    if (d) list.push(d);
+    out.set(w.id, list);
+  });
+  return out;
+}
+
 function runWithWorkers(
   workers: Worker[],
-  jobs: ZoneJob[],
+  work: FoundryJob[],
   results: (Float32Array | undefined)[],
   report: () => void,
 ): Promise<void> {
@@ -77,16 +101,16 @@ function runWithWorkers(
     let finished = 0;
     const timeout = setTimeout(() => reject(new Error('Foundry workers timed out')), 60_000);
     const feed = (w: Worker) => {
-      if (next >= jobs.length) return;
+      if (next >= work.length) return;
       const id = next++;
-      w.postMessage({ id, job: jobs[id] });
+      w.postMessage({ id, work: work[id] });
     };
     for (const w of workers) {
       w.onmessage = (e: MessageEvent<{ id: number; data: Float32Array }>) => {
         results[e.data.id] = e.data.data;
         report();
         finished++;
-        if (finished === jobs.length) {
+        if (finished === work.length) {
           clearTimeout(timeout);
           resolve();
         } else feed(w);
