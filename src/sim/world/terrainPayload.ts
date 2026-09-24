@@ -2,6 +2,7 @@
 // main thread at load) and its reconstruction.
 
 import { Heightfield } from './Heightfield.ts';
+import type { TreeSite } from './Sites.ts';
 import type { BridgeSpan, DensePath, GeneratedTerrain } from './TerrainGen.ts';
 
 export interface TerrainPayload {
@@ -12,11 +13,12 @@ export interface TerrainPayload {
   paths: Record<string, DensePath>;
   roadProfiles: Record<string, number[]>;
   bridges: BridgeSpan[];
+  sites: TreeSite[];
   /** Generation time (ms), for the loading log. */
   ms: number;
 }
 
-export function toPayload(t: GeneratedTerrain, ms: number): TerrainPayload {
+export function toPayload(t: GeneratedTerrain, sites: TreeSite[], ms: number): TerrainPayload {
   return {
     size: t.heightfield.size,
     cellSize: t.heightfield.cellSize,
@@ -25,6 +27,7 @@ export function toPayload(t: GeneratedTerrain, ms: number): TerrainPayload {
     paths: Object.fromEntries(t.paths),
     roadProfiles: Object.fromEntries(t.roadProfiles),
     bridges: t.bridges,
+    sites,
     ms,
   };
 }

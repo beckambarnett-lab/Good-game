@@ -125,6 +125,40 @@ export const terrainView: TerrainViewTuning = {
   railTint: 0.7,
 };
 
+export interface ForestViewTuning {
+  /** Distance (m) where LOD0 gives way to LOD1, and LOD1 to LOD2 (Plan Part 5.5: 40 / 120). */
+  lodDistances: readonly [number, number];
+  /** Extra distance (m) before a tree switches back, so trees don't flicker at a threshold. */
+  lodHysteresis: number;
+  /** Stumps are small: drawn only within this distance (m). */
+  stumpDistance: number;
+  /** Culling and LOD rate (Hz; Plan Part 7.4). */
+  updateHz: number;
+  /** Distinct LOD0 models per species, so near trees don't repeat. */
+  lod0Variants: number;
+  /** Height (m) the tree models are built at; instances scale to their site's height. */
+  referenceHeight: number;
+  saplingHeight: number;
+  /** Per-tree brightness variation (±). */
+  tintAmount: number;
+  /** Wind sway: metres at the top of a reference-height tree, and angular speed (rad/s). */
+  swayAmplitude: number;
+  swaySpeed: number;
+}
+
+export const forestView: ForestViewTuning = {
+  lodDistances: [40, 120],
+  lodHysteresis: 4,
+  stumpDistance: 60,
+  updateHz: 10,
+  lod0Variants: 3,
+  referenceHeight: 12,
+  saplingHeight: 1.3,
+  tintAmount: 0.08,
+  swayAmplitude: 0.18,
+  swaySpeed: 0.9,
+};
+
 export interface ValleyViewTuning {
   /** Exponential fog density: light enough that the town reads from the cabin (170 m). */
   fogDensity: number;

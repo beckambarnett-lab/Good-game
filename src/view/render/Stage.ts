@@ -24,6 +24,7 @@ import {
 } from 'three';
 import { palette } from './palette.ts';
 import { Sky } from './Sky.ts';
+import { shared } from './sharedUniforms.ts';
 
 export interface StageOptions {
   /** Exponential fog density (FogExp2); the valley needs far thinner fog than a clearing. */
@@ -134,6 +135,7 @@ export class Stage {
   /** Runs the per-frame updaters and draws one frame through the post chain. */
   renderFrame(dt: number): void {
     this.elapsed += dt;
+    shared.uTime.value = this.elapsed;
     for (const u of this.updaters) u(dt, this.elapsed);
     this.sky.position.copy(this.camera.position);
     this.composer.render(dt);

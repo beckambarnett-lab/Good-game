@@ -81,8 +81,8 @@ export class App {
     this.fsm.go('title');
     this.fsm.go('loading');
     this.say('<p class="quiet">Laying the snow…</p>');
-    const { terrain, ms } = await generateTerrainInWorker();
-    console.info(`Terrain generated in ${ms.toFixed(0)} ms`);
+    const { terrain, sites, ms } = await generateTerrainInWorker();
+    console.info(`Valley generated in ${ms.toFixed(0)} ms (${sites.length} trees)`);
 
     this.stage = new Stage(this.host, {
       fogDensity: valleyView.fogDensity,
@@ -91,7 +91,7 @@ export class App {
     });
     this.stage.camera.fov = this.settings.get('graphics', 'fov');
     this.stage.camera.updateProjectionMatrix();
-    this.valley = new ValleyScene(this.stage, terrain);
+    this.valley = new ValleyScene(this.stage, terrain, sites);
     this.clockSystem = new ClockSystem(clockTuning);
     this.sim = new Sim(valleyView.seed, simTuning.stepHz, [this.clockSystem]).init();
     this.loop = new GameLoop(
@@ -147,7 +147,7 @@ export class App {
     const [tx, tz, th] = shot.target;
     cam.position.set(ex, this.valley.groundAt(ex, ez) + eh, ez);
     cam.lookAt(tx, this.valley.groundAt(tx, tz) + th, tz);
-    this.valley.settle(cam.position);
+    this.valley.settle(cam);
     this.focus.set(ex, this.valley.groundAt(ex, ez), ez);
   }
 
@@ -163,7 +163,7 @@ export class App {
       this.focus.set(CABIN.x, this.valley.groundAt(CABIN.x, CABIN.z), CABIN.z);
       cam.lookAt(this.focus);
     }
-    this.valley.update(cam.position, dt);
+    this.valley.update(cam, dt);
     this.stage.followShadow(this.focus);
     this.stage.renderFrame(dt);
     if (this.shot && !this.shot.ready && ++this.shotFrames >= SHOT_SETTLE_FRAMES) {
