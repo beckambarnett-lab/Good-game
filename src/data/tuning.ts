@@ -72,6 +72,18 @@ export const sim: SimTuning = {
   maxStepsPerFrame: 5,
 };
 
+export interface AppTuning {
+  /** Longest frame (s) render-side animation may see after a stall, so nothing leaps. */
+  maxRenderDeltaSeconds: number;
+  /** Music and ambience level while the tab is hidden with "Background audio" on (Plan Part 2.11). */
+  backgroundAudioDuckDb: number;
+}
+
+export const app: AppTuning = {
+  maxRenderDeltaSeconds: 0.1,
+  backgroundAudioDuckDb: -6,
+};
+
 export interface SaveTuning {
   /** Autosave cadence in real seconds of play (Plan Part 2.11). */
   autosaveEveryRealSeconds: number;

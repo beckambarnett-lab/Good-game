@@ -41,10 +41,11 @@ Plan: `docs/plan/08-roadmap.md` → M0.
   - [ ] `ci.yml` (done) + `pages.yml`
   - [x] Update the Commands section of `CLAUDE.md`
 - [ ] App shell
-  - [ ] State machine
-  - [ ] Fixed-step loop with interpolation: `FixedStepper` (core) and `Sim` done; the rAF GameLoop to come
-  - [ ] EventBus (done, core), Context, Settings (localStorage)
-  - [ ] Visibility handling
+  - [x] State machine: `StateMachine` (core) + the app flow and per-state traits (`src/app/states.ts`: which states step the world and run the clock)
+  - [x] Fixed-step loop with interpolation: `FixedStepper` + `GameLoop` (rAF, fps cap, pause without replay, stall cap)
+  - [x] EventBus, Settings (schema in `src/data/settings.ts`, validated, localStorage, live change events)
+  - [x] Visibility handling (`Visibility`: hidden/visible/pagehide events)
+  - [ ] `App` assembly + Context (with the M0 test scene: Boot → Splash → Loading → Playing)
   - [x] Seeded RNG with forks (streams saved and restored)
   - [x] Sim skeleton: `Sim.ts` system registry, fixed step, `advance`, serialize; `ClockSystem`
 - [ ] Render core
