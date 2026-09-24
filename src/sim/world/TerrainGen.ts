@@ -6,7 +6,14 @@
 
 import { Noise2D } from '../../core/math/noise.ts';
 import { smoothstep } from '../../core/math/spring.ts';
-import type { FlatZone, PathPoint, RoadDef, Shape, TerrainDef } from '../../data/world/terrain.ts';
+import {
+  type FlatZone,
+  type PathPoint,
+  type RoadDef,
+  type Shape,
+  SURFACE,
+  type TerrainDef,
+} from '../../data/world/terrain.ts';
 import { Heightfield } from './Heightfield.ts';
 
 /** Target spacing (m) of densified path vertices. */
@@ -35,6 +42,18 @@ export function distanceOutside(shape: Shape, x: number, z: number): number {
       const dz = Math.max(shape.z0 - z, 0, z - shape.z1);
       return Math.hypot(dx, dz);
     }
+  }
+}
+
+/** Axis-aligned bounds of a shape: [x0, z0, x1, z1]. */
+export function shapeBounds(shape: Shape): [number, number, number, number] {
+  switch (shape.kind) {
+    case 'circle':
+      return [shape.x - shape.r, shape.z - shape.r, shape.x + shape.r, shape.z + shape.r];
+    case 'ellipse':
+      return [shape.x - shape.rx, shape.z - shape.rz, shape.x + shape.rx, shape.z + shape.rz];
+    case 'rect':
+      return [shape.x0, shape.z0, shape.x1, shape.z1];
   }
 }
 
@@ -185,6 +204,8 @@ export function limitGrade(values: readonly number[], maxRise: number): number[]
   return forward.map((v, i) => (v + (backward[i] as number)) / 2);
 }
 
+/** A flat's own surface (the lake's ice) covers samples where the flat fully holds. */
+const FLAT_SURFACE_WEIGHT = 0.999;
 /** Scale (m) of the wobble that breaks up flat-zone boundaries. */
 const FLAT_EDGE_WAVELENGTH = 37;
 
@@ -324,6 +345,8 @@ export interface GeneratedTerrain {
   /** Road height profiles by id, sampled every PROFILE_STEP m (bridge decks follow these). */
   roadProfiles: Map<string, number[]>;
   bridges: BridgeSpan[];
+  /** Surface code per heightfield sample (SURFACE), same layout as the heights. */
+  surface: Uint8Array;
 }
 
 export function generateTerrain(def: TerrainDef): GeneratedTerrain {
@@ -333,6 +356,21 @@ export function generateTerrain(def: TerrainDef): GeneratedTerrain {
   for (let j = 0; j < n; j++) {
     const z = hf.coord(j);
     for (let i = 0; i < n; i++) hf.heights[j * n + i] = naturalHeight(def, noise, hf.coord(i), z);
+  }
+
+  const surface = new Uint8Array(n * n);
+  const toIndex = (v: number) => Math.round((v + def.size / 2) / def.cellSize);
+  const clampIndex = (i: number) => Math.min(n - 1, Math.max(0, i));
+  for (const f of def.flats) {
+    if (!f.surface) continue;
+    const code = SURFACE[f.surface];
+    const [x0, z0, x1, z1] = shapeBounds(f.shape);
+    const m = f.edgeNoise + 1;
+    for (let j = clampIndex(toIndex(z0 - m)); j <= clampIndex(toIndex(z1 + m)); j++) {
+      for (let i = clampIndex(toIndex(x0 - m)); i <= clampIndex(toIndex(x1 + m)); i++) {
+        if (flatWeight(f, noise, hf.coord(i), hf.coord(j)) >= FLAT_SURFACE_WEIGHT) surface[j * n + i] = code;
+      }
+    }
   }
 
   const paths = new Map<string, DensePath>();
@@ -357,6 +395,7 @@ export function generateTerrain(def: TerrainDef): GeneratedTerrain {
           bedAt(field.along[fj * field.w + fi] as number) + creek.bankSlope * Math.max(0, d - half);
         // Cut down to the channel: the floor always fully, the bank's top edge rounded into the
         // land. Never raise the land, never undercut the channel, fade out at the edge of the reach.
+        if (d <= half) surface[idx] = SURFACE.creekIce;
         const excess = h - channel;
         if (excess <= 0) continue;
         const floor = 1 - smoothstep(half - 0.5, half + 1.5, d);
@@ -390,11 +429,12 @@ export function generateTerrain(def: TerrainDef): GeneratedTerrain {
         const target = profileAt(profile, along);
         const w = 1 - smoothstep(edge, reach, d);
         const idx = j * n + fi + field.i0;
+        if (d <= edge) surface[idx] = SURFACE[road.surface];
         const h = hf.heights[idx] as number;
         hf.heights[idx] = h + (target - h) * w;
       }
     }
   }
 
-  return { heightfield: hf, paths, roadProfiles, bridges };
+  return { heightfield: hf, paths, roadProfiles, bridges, surface };
 }

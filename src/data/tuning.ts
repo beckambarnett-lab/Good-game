@@ -84,6 +84,42 @@ export const app: AppTuning = {
   backgroundAudioDuckDb: -6,
 };
 
+export interface TerrainViewTuning {
+  /** Chunk edge (m); the world is divided into square chunks, each with every LOD. */
+  chunkSize: number;
+  /** Heightfield sample stride per LOD (1 = every metre). */
+  lodStrides: readonly number[];
+  /** Distance (m) from the camera beyond which each LOD gives way to the next coarser one. */
+  lodDistances: readonly number[];
+  /** Extra distance (m) before switching back, so chunks don't flicker at a threshold. */
+  lodHysteresis: number;
+  /** Skirt depth (m) beyond the widest gap between any two LODs along a chunk's edges. */
+  skirtMargin: number;
+  /** LOD reselection rate (Hz); Plan Part 7.4 throttles culling updates to 10 Hz. */
+  updateHz: number;
+  /** Snow colour: how deep a hollow (m below its neighbours' mean, at 2 m) turns fully shadow-blue. */
+  hollowDepth: number;
+  hollowTint: number;
+  /** Slopes (degrees) that fade toward deep-shadow blue; rock outcrops come later (Plan Part 5.5). */
+  steepFrom: number;
+  steepTo: number;
+  steepTint: number;
+}
+
+export const terrainView: TerrainViewTuning = {
+  chunkSize: 32,
+  lodStrides: [1, 2, 4, 8],
+  lodDistances: [64, 128, 256],
+  lodHysteresis: 8,
+  skirtMargin: 0.5,
+  updateHz: 10,
+  hollowDepth: 0.5,
+  hollowTint: 0.55,
+  steepFrom: 32,
+  steepTo: 48,
+  steepTint: 0.5,
+};
+
 export interface SaveTuning {
   /** Autosave cadence in real seconds of play (Plan Part 2.11). */
   autosaveEveryRealSeconds: number;

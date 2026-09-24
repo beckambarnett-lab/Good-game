@@ -1,6 +1,11 @@
 // Terrain features of the Wrenhollow valley (Plan Part 3.1; ADR 0001). Coordinates in metres: the
 // world is 512 × 512 centred on the Lantern Tree at (0, 0); +X east, +Z south, Y up.
 
+/** What the ground is at a heightfield sample: drives footsteps, speed rules and colour. */
+export const SURFACE = { snow: 0, road: 1, rail: 2, lakeIce: 3, creekIce: 4 } as const;
+export type SurfaceKind = keyof typeof SURFACE;
+export type SurfaceCode = (typeof SURFACE)[SurfaceKind];
+
 /** A path vertex: [x, z], or [x, z, y] to pin the path's height there. */
 export type PathPoint = readonly [number, number] | readonly [number, number, number];
 
@@ -19,6 +24,8 @@ export interface FlatZone {
   edgeNoise: number;
   /** Fraction (0–1) of the land's natural roll kept inside the flat; 0 = dead level (building pads). */
   relief: number;
+  /** The ground inside the flat, when it isn't snow (the lake's ice). */
+  surface?: SurfaceKind;
 }
 
 export interface Hill {
@@ -31,6 +38,7 @@ export interface Hill {
 
 export interface RoadDef {
   id: string;
+  surface: 'road' | 'rail';
   width: number;
   /** Blend distance beyond the road edge. */
   shoulder: number;
@@ -117,6 +125,7 @@ export const wrenhollowTerrain: TerrainDef = {
       falloff: 14,
       edgeNoise: 7,
       relief: 0,
+      surface: 'lakeIce',
     },
     {
       id: 'landing',
@@ -170,6 +179,7 @@ export const wrenhollowTerrain: TerrainDef = {
   roads: [
     {
       id: 'mainStreet',
+      surface: 'road',
       width: 10,
       shoulder: 6,
       smoothing: 30,
@@ -183,6 +193,7 @@ export const wrenhollowTerrain: TerrainDef = {
     {
       // Winds past the Mortons (north) and the Vargas (south) to keep the 9 m climb gentle.
       id: 'cabinRoad',
+      surface: 'road',
       width: 6,
       shoulder: 5,
       smoothing: 24,
@@ -200,6 +211,7 @@ export const wrenhollowTerrain: TerrainDef = {
     {
       // West of the School Lane houses, ending at the foot of School Hill past the schoolhouse.
       id: 'schoolLane',
+      surface: 'road',
       width: 5,
       shoulder: 4,
       smoothing: 20,
@@ -214,6 +226,7 @@ export const wrenhollowTerrain: TerrainDef = {
     },
     {
       id: 'lakeRoad',
+      surface: 'road',
       width: 6,
       shoulder: 5,
       smoothing: 24,
@@ -228,6 +241,7 @@ export const wrenhollowTerrain: TerrainDef = {
       // Level crossing at z 60, bridge over Tallow Creek, down into the bottoms, then the 14° rise
       // (25 m, +6.2 m) up to the farmyard.
       id: 'farmLane',
+      surface: 'road',
       width: 5,
       shoulder: 4,
       smoothing: 6,
@@ -246,6 +260,7 @@ export const wrenhollowTerrain: TerrainDef = {
     {
       // Tunnel west → Wrenhollow Halt → level crossing → trestle over the creek mouth → tunnel east.
       id: 'railLine',
+      surface: 'rail',
       width: 4,
       shoulder: 3,
       smoothing: 10,

@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it } from 'vitest';
-import { wrenhollowTerrain as def, type RoadDef } from '../../src/data/world/terrain.ts';
+import { wrenhollowTerrain as def, type RoadDef, SURFACE } from '../../src/data/world/terrain.ts';
 import type { Heightfield } from '../../src/sim/world/Heightfield.ts';
 import {
   type BridgeSpan,
@@ -13,12 +13,20 @@ import {
 let hf: Heightfield;
 let paths: Map<string, DensePath>;
 let bridges: BridgeSpan[];
+let surface: Uint8Array;
 beforeAll(() => {
   const t = generateTerrain(def);
   hf = t.heightfield;
   paths = t.paths;
   bridges = t.bridges;
+  surface = t.surface;
 });
+
+const surfaceAt = (x: number, z: number): number => {
+  const i = Math.round((x + def.size / 2) / def.cellSize);
+  const j = Math.round((z + def.size / 2) / def.cellSize);
+  return surface[j * hf.n + i] as number;
+};
 
 const pathOf = (id: string): DensePath => {
   const p = paths.get(id);
@@ -140,5 +148,15 @@ describe('Wrenhollow terrain', () => {
   it('the ridge rises well above the valley', () => {
     expect(hf.sample(-150, -240)).toBeGreaterThan(55);
     expect(hf.sample(-150, 60)).toBeLessThan(15);
+  });
+
+  it('knows what the ground is made of', () => {
+    expect(surfaceAt(220, 40)).toBe(SURFACE.lakeIce);
+    expect(surfaceAt(-60, 0)).toBe(SURFACE.road);
+    expect(surfaceAt(-10, 55)).toBe(SURFACE.rail);
+    expect(surfaceAt(-90, 104)).toBe(SURFACE.creekIce);
+    expect(surfaceAt(50, 95)).toBe(SURFACE.creekIce); // under the farm bridge
+    expect(surfaceAt(-200, -60)).toBe(SURFACE.snow);
+    expect(surfaceAt(163, 14)).not.toBe(SURFACE.lakeIce); // the landing is dry land
   });
 });
