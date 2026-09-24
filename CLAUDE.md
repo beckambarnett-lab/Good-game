@@ -46,7 +46,7 @@
 - `npm run dev`: Vite dev server. `npm run build` / `npm run preview`: the production build.
 - `npm run check`: Biome lint, `tsc` typecheck and the sim/view boundary check. Run before every commit.
 - `npm test`: Vitest unit and sim tests. `npm run e2e`: Playwright against the built app.
-- `npm run audio [seeds…]`: offline soundtrack renders, spectrograms and QA metrics → `artifacts/audio/`.
+- `npm run audio [seeds…]`: offline renders of the soundtrack, every SFX variant and a footstep walk, with spectrograms and QA metrics → `artifacts/audio/`.
 - `npm run map`: the terrain relief map → `artifacts/terrain/map.png`. Look at it after any terrain change.
 - `npm run shots [S01 …] [--no-build]`: art QA shots (`src/data/shots.ts`) in headless Chromium → `artifacts/shots/` + render budgets. **Look at the PNGs.**
 - `npm run lab:build <name>` / `npm run lab:check`: build a Review Lab for publishing, and its headless checks.
@@ -54,4 +54,4 @@
 - Still to come: `soak` (M0), then `content`, `econ`, `perf` and `assets` as their milestones land.
 
 ## Current status
-M0 (Foundations) in progress. Labs #1 (soundtrack) and #2 (felling) are in review. See `docs/progress.md`.
+M0 (Foundations) in progress. Labs #1 (soundtrack), #2 (felling) and #3 (winter walk) are in review. See `docs/progress.md`.

@@ -4,6 +4,7 @@
 **Last updated:** 2026-09-24
 
 ## Status log
+- 2026-09-24: Lab #3 **Winter walk** published for review: the real valley with live sliders for walking, camera and footsteps; footsteps on powder, packed snow and ice (plus the cold squeak and a coat rustle) through a seeded footstep planner; the valley's occasional 4-bar felt-piano phrase (Director phrase mode). Both sounds stay lab-only until approved. `npm run audio` now measures every SFX variant and renders a walk.
 - 2026-09-24: Complete development plan written (`docs/plan/`).
 - 2026-09-24: User switched to the review-gated Lab workflow and designed the swinging-bar felling minigame. `main` created; draft PR open, CI green.
 - 2026-09-24: Scaffold, core utilities, Sound Foundry, DirectorCore v1, Stage and Joinery built; Labs #1 and #2 published for review.
@@ -20,6 +21,7 @@
 |---|---|---|
 | #1 Soundtrack: Wrenhollow Lullaby | **in review.** User supplied an alternative theme; direction pending | [Lab](https://claude.ai/artifact/JiveVgK6AeMt8GvXXvoAcu) · `docs/reviews/soundtrack-lullaby.md` |
 | #2 Felling minigame (swinging bar) | **in review** | [Lab](https://claude.ai/artifact/6WoiRfvAxPesv8yLczJVGh) · `docs/reviews/felling-minigame.md` |
+| #3 Winter walk (controls, camera, footsteps, piano phrase) | **in review** | [Lab](https://claude.ai/artifact/9SMnuu8SoFQB7rG7jUoDgN) · `docs/reviews/winter-walk.md` |
 
 ## Known issues / open questions
 - **Main theme direction:** the user's track vs P01. Waiting on the user: where the track came from (licence, and source code if it was made in code), and whether it becomes the main theme.
@@ -29,8 +31,10 @@
   - dynamic arc and sectional contrast;
   - softer felt-piano attacks;
   - an ambient air bed.
-- **Scripts not yet present:** `npm run soak` and `npm run shots` are declared in `package.json`, but `tools/soak.ts` and `tools/shots.ts` don't exist yet (M0 dev tools).
-- **Controls feel** (feel-critical → Winter Walk lab): walk/jog speeds, acceleration, camera distance, springs and recenter are the plan's numbers, not yet playtested. No shake yet; trunks don't dither-fade yet (HearthMaterial).
+- **Scripts not yet present:** `npm run soak` is declared in `package.json`, but `tools/soak.ts` doesn't exist yet (M0 dev tools).
+- **Controls feel and footsteps** are in review (Lab #3). Until approved, the game build keeps footstep sounds and the valley's piano phrases off (`AppOptions.footstepSounds` / `valleyPhrases`), so the M0 done-check "footsteps crunch, a felt-piano phrase plays" waits on that approval. No camera shake yet; trunks don't dither-fade yet (HearthMaterial).
+- **Audio mix:** the valley applies the Plan 6.10 bus levels (music −8 dB under world SFX); the standalone Labs #1 and #2 still play their buses at 0 dB, so their levels aren't comparable with the game's. The felt-piano bank renders all 46 zones (~28 MB) even for the valley's short phrase; render only the needed range later.
+- **Footstep surfaces:** the M0 valley has powder, packed (roads, rail bed) and ice. Deep-snow plunge, gravel, planks, interiors, trail wear and boot tiers join as their systems land (M1: snow patches and the trail map).
 - **Forest:** oaks (ridge old growth), apples and the maple grove arrive with M7/M8; forest cards beyond 300 m and quality-preset density with the render core; tree shadows don't sway yet (the depth material lacks the sway patch); the ridge's 120 fellable sites are designated in M8.
 - **Valley look (M0 placeholders):** lighting uses a flat exposure scale (1.6) until the Environment key frames (M1.7); the valley is empty until the forest and buildings land; the world edge shows without the backdrop mountains; roads are vertex colour on the terrain, so their edges stair-step at far LODs (road ribbons come with M3).
 - **Save fixtures:** add `tests/fixtures/saves/v1.hearthwood` at the first playtest release, then one per released save version.
@@ -70,19 +74,19 @@ Plan: `docs/plan/08-roadmap.md` → M0.
 - [x] Input (KBM, gamepad, bindings, pointer lock), CameraRig v0 (orbit, springs, terrain collision, lazy recenter), Movement v0 (capsule on the heightfield + trunk colliders; the building BVH arrives with the cabin in M1)
 - [x] Audio core
   - [x] AudioEngine (unlock, buses, limiter, IR generator)
-  - [x] Foundry worker pool + 3 recipes
+  - [x] Foundry worker pool + 3 recipes (snow crunch, felt-piano note; the UI tick comes with the UI)
   - [x] Lookahead scheduler
   - [x] DirectorCore test phrase (v1 already, for Lab #1)
 - [x] Save core: IndexedDB, gzip, CRC, slots (A/B autosave + 3 manual), migrations framework, round-trip test (unit + e2e)
 - [ ] Dev tools: overlay, cheats, `soak` (`shots` with 3 shots, audio-render and map done)
 - [ ] **Done-check:**
   - [ ] CI green
-  - [ ] Pages test scene (walkable valley, swaying pines, crunching footsteps, felt-piano phrase)
+  - [ ] Pages test scene (walkable valley, swaying pines, crunching footsteps, felt-piano phrase): all built; footsteps and the phrase are in review (Lab #3), so they join the Pages build on approval
   - [x] Save round-trip passes (`tests/unit/save.test.ts`, `tests/e2e/save.spec.ts`)
   - [x] Screenshot artifacts (`npm run shots`; CI uploads `artifacts/shots/`)
   - [ ] Budgets shown in the dev overlay
 
-**Built early for later milestones:** Clock/calendar (M1.7) and the felling sim + SFX recipes (M1.4, Lab #2).
+**Built early for later milestones:** Clock/calendar (M1.7), the felling sim + SFX recipes (M1.4, Lab #2) and the footstep system (M1.11, Lab #3).
 
 ## M1 — Vertical Slice, already polished (≈ 14 sessions) ★
 Plan: `docs/plan/08-roadmap.md` → M1.
@@ -123,7 +127,7 @@ Plan: `docs/plan/08-roadmap.md` → M1.
   - [ ] Dog Anvil
 - [ ] 11. Audio
   - [ ] VS SFX set
-  - [ ] Footstep system
+  - [ ] Footstep system (built early for Lab #3: planner, 5 recipes, surface resolution for the M0 surfaces; in review)
   - [ ] Ambience
   - [ ] Mixer snapshots, ducking
 - [ ] 12. Music
