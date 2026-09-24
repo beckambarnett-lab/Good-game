@@ -111,14 +111,17 @@ describe('terrain chunks', () => {
     }
   });
 
-  it('colour roads packed, hollows bluer than the open snow', () => {
+  it('colour roads a touch packed, hollows bluer than the open snow', () => {
     const at = (x: number, z: number) => {
       const i = x + 32;
       const j = z + 32;
       const k = (j * hf.n + i) * 3;
       return new Color(colors[k] as number, colors[k + 1] as number, colors[k + 2] as number);
     };
-    expect(at(-20, 0).getHex()).toBe(new Color().setHex(palette.snowPacked).getHex());
+    const packed = new Color()
+      .setHex(palette.snowLit)
+      .lerp(new Color().setHex(palette.snowPacked), terrainView.roadTint);
+    expect(at(-20, 0).getHex()).toBe(packed.getHex());
     const hollow = at(-15, -15);
     const open = at(-25, 20);
     expect(hollow.b - hollow.r).toBeGreaterThan(open.b - open.r);

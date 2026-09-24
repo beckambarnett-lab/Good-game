@@ -18,3 +18,11 @@ jobs:
       - run: npm run build
       - run: npx playwright install --with-deps chromium
       - run: npm run e2e
+      # Art QA shots (Plan Part 7.10): screenshots + render budgets, kept as a CI artifact.
+      - run: npm run shots -- --no-build
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: shots
+          path: artifacts/shots/
+          if-no-files-found: ignore

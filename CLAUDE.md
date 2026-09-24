@@ -48,8 +48,10 @@
 - `npm test`: Vitest unit and sim tests. `npm run e2e`: Playwright against the built app.
 - `npm run audio [seeds…]`: offline soundtrack renders, spectrograms and QA metrics → `artifacts/audio/`.
 - `npm run map`: the terrain relief map → `artifacts/terrain/map.png`. Look at it after any terrain change.
+- `npm run shots [S01 …] [--no-build]`: art QA shots (`src/data/shots.ts`) in headless Chromium → `artifacts/shots/` + render budgets. **Look at the PNGs.**
 - `npm run lab:build <name>` / `npm run lab:check`: build a Review Lab for publishing, and its headless checks.
-- Still to come in M0: `shots`, `soak`, then `content`, `econ`, `perf` and `assets` as their milestones land.
+- The app accepts `?shot=S04` (frame a QA shot) and `?selftest` (in-browser checks for e2e).
+- Still to come: `soak` (M0), then `content`, `econ`, `perf` and `assets` as their milestones land.
 
 ## Current status
 M0 (Foundations) in progress. Labs #1 (soundtrack) and #2 (felling) are in review. See `docs/progress.md`.

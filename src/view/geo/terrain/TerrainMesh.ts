@@ -1,7 +1,8 @@
 // The valley's ground (Plan Part 7.4): 32 m chunks, each with four LODs and skirts that hide the
 // cracks where LODs meet, all packed into one BatchedMesh (one draw call, per-chunk culling). The
-// camera's distance picks each chunk's LOD a few times a second, with hysteresis. Flat-shaded
-// facets; vertex colours from the palette: snow, blue in hollows, packed roads, ice.
+// camera's distance picks each chunk's LOD a few times a second, with hysteresis. Smooth-shaded
+// soft snow (1 m facets read as noise, and shared normals hide the skirts); vertex colours from the
+// palette: snow, blue in hollows, packed roads, ice.
 
 import { BatchedMesh, BufferAttribute, BufferGeometry, Color, type Material, type Vector3 } from 'three';
 import { smoothstep } from '../../../core/math/spring.ts';
@@ -19,8 +20,8 @@ export function terrainColors(hf: Heightfield, surface: Uint8Array, t: TerrainVi
   const shadow = c(palette.snowShadow);
   const deep = c(palette.snowDeep);
   const fixed = new Map<number, Color>([
-    [SURFACE.road, c(palette.snowPacked)],
-    [SURFACE.rail, c(palette.snowPacked).lerp(c(palette.stone), 0.3)],
+    [SURFACE.road, c(palette.snowLit).lerp(c(palette.snowPacked), t.roadTint)],
+    [SURFACE.rail, c(palette.snowLit).lerp(c(palette.snowPacked).lerp(c(palette.stone), 0.3), t.railTint)],
     [SURFACE.lakeIce, c(palette.iceFrosted)],
     [SURFACE.creekIce, c(palette.iceFrosted).lerp(c(palette.iceClear), 0.35)],
   ]);
@@ -290,8 +291,10 @@ export class TerrainMesh {
         });
       }
     }
+    // Receives the shadows of trees, buildings and the player; casting onto itself at a grazing sun
+    // only produces acne at this scale.
     this.mesh.receiveShadow = true;
-    this.mesh.castShadow = true;
+    this.mesh.castShadow = false;
   }
 
   /** Reselects LODs for a camera position, at most `updateHz` times a second. */

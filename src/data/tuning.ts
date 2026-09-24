@@ -104,6 +104,9 @@ export interface TerrainViewTuning {
   steepFrom: number;
   steepTo: number;
   steepTint: number;
+  /** How far roads and rail shift from lit snow toward packed snow / ballast (subtle: they're under snow). */
+  roadTint: number;
+  railTint: number;
 }
 
 export const terrainView: TerrainViewTuning = {
@@ -118,6 +121,48 @@ export const terrainView: TerrainViewTuning = {
   steepFrom: 32,
   steepTo: 48,
   steepTint: 0.5,
+  roadTint: 0.5,
+  railTint: 0.7,
+};
+
+export interface ValleyViewTuning {
+  /** Exponential fog density: light enough that the town reads from the cabin (170 m). */
+  fogDensity: number;
+  /** Camera far plane (m); the whole 512 m valley plus the backdrop. */
+  far: number;
+  /** Light scale so lit snow reads white (until Environment key frames calibrate each hour, M1). */
+  exposure: number;
+  /** Idle camera circling the cabin until the CameraRig arrives (M0 placeholder). */
+  orbitRadius: number;
+  orbitHeight: number;
+  orbitSpeed: number;
+  /** World seed of the test scene, until New Game (M1) chooses one per save. */
+  seed: number;
+}
+
+export const valleyView: ValleyViewTuning = {
+  fogDensity: 0.0025,
+  far: 1200,
+  exposure: 1.6,
+  orbitRadius: 28,
+  orbitHeight: 9,
+  orbitSpeed: 0.05,
+  seed: 1847261,
+};
+
+/** Render budgets for the Medium preset (Plan Part 7.8), checked by `npm run shots`. */
+export interface RenderBudget {
+  mainCalls: number;
+  mainTriangles: number;
+  shadowCalls: number;
+  shadowTriangles: number;
+}
+
+export const renderBudget: RenderBudget = {
+  mainCalls: 250,
+  mainTriangles: 1_200_000,
+  shadowCalls: 120,
+  shadowTriangles: 600_000,
 };
 
 export interface SaveTuning {
