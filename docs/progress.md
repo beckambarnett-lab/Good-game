@@ -1,21 +1,32 @@
 # Progress
 
 **Current milestone:** M0 — Foundations
-**Last updated:** planning session (2026-09-24)
+**Last updated:** 2026-09-24
 
 ## Status log
-- 2026-09-24: Complete development plan written (`docs/plan/`). No code yet.
-- 2026-09-24: User switched to the review-gated Lab workflow and designed the swinging-bar felling minigame. `main` created.
+- 2026-09-24: Complete development plan written (`docs/plan/`).
+- 2026-09-24: User switched to the review-gated Lab workflow and designed the swinging-bar felling minigame. `main` created; draft PR open, CI green.
+- 2026-09-24: Scaffold, core utilities, Sound Foundry, DirectorCore v1, Stage and Joinery built; Labs #1 and #2 published for review.
+- 2026-09-24: User supplied an alternative main theme. It was measured against P01; verdict and recommendation are in `docs/reviews/soundtrack-lullaby.md`. Waiting on provenance and direction.
+- 2026-09-24: TerrainGen v0 with the full town-bible layout (ADR 0001). `npm run map` added.
 
 ## Review queue (Plan Part 8.0)
 
 | Lab | Status | Link |
 |---|---|---|
-| #1 Soundtrack: Wrenhollow Lullaby | **in review** | [Lab](https://claude.ai/artifact/JiveVgK6AeMt8GvXXvoAcu) · `docs/reviews/soundtrack-lullaby.md` |
+| #1 Soundtrack: Wrenhollow Lullaby | **in review.** User supplied an alternative theme; direction pending | [Lab](https://claude.ai/artifact/JiveVgK6AeMt8GvXXvoAcu) · `docs/reviews/soundtrack-lullaby.md` |
 | #2 Felling minigame (swinging bar) | **in review** | [Lab](https://claude.ai/artifact/6WoiRfvAxPesv8yLczJVGh) · `docs/reviews/felling-minigame.md` |
 
 ## Known issues / open questions
-- None yet.
+- **Main theme direction:** the user's track vs P01. Waiting on the user: where the track came from (licence, and source code if it was made in code), and whether it becomes the main theme.
+- **Music engine gaps** exposed by the comparison (Lab #1 round 2 material):
+  - stereo width;
+  - a pedal/sub layer;
+  - dynamic arc and sectional contrast;
+  - softer felt-piano attacks;
+  - an ambient air bed.
+- **Scripts not yet present:** `npm run soak` and `npm run shots` are declared in `package.json`, but `tools/soak.ts` and `tools/shots.ts` don't exist yet (M0 dev tools).
+- **Terrain gaps:** the ridge switchbacks, Ridge Trail and shore footpath are not in the terrain data yet (M8/M7). Terrain generation takes about 1 s on the main thread; move it to a worker with TerrainMesh.
 
 ---
 
@@ -23,39 +34,45 @@
 Plan: `docs/plan/08-roadmap.md` → M0.
 
 - [ ] Scaffold
-  - [ ] Vite + TS strict + Biome + Vitest + Playwright 1.56.x (executablePath)
-  - [ ] npm scripts (Plan 7.10)
-  - [ ] `ci.yml` + `pages.yml`
-  - [ ] Update the Commands section of `CLAUDE.md`
+  - [x] Vite + TS strict + Biome + Vitest + Playwright 1.56.x (executablePath)
+  - [ ] npm scripts (Plan 7.10): dev, build, check, test, e2e, audio, map, lab:* done; soak, shots to come
+  - [ ] `ci.yml` (done) + `pages.yml`
+  - [x] Update the Commands section of `CLAUDE.md`
 - [ ] App shell
   - [ ] State machine
   - [ ] Fixed-step loop with interpolation
   - [ ] EventBus, Context, Settings (localStorage)
   - [ ] Visibility handling
-  - [ ] Seeded RNG with forks
+  - [x] Seeded RNG with forks
 - [ ] Render core
-  - [ ] Renderer, Quality presets, DynamicResolution
-  - [ ] PostFX (bloom, tone map, Grade, vignette, grain)
+  - [ ] Renderer (Stage done), Quality presets, DynamicResolution
+  - [ ] PostFX (bloom, tone map, vignette done; Grade, grain to come)
   - [ ] HearthMaterial v0
-  - [ ] Sky v0
-  - [ ] Lights + pool
+  - [x] Sky v0
+  - [ ] Lights (hemi + sun done) + pool
   - [ ] Prewarm
-- [ ] World core: TerrainGen v0 (worker), TerrainMesh chunks, Heightfield queries
-- [ ] Joinery v0 + Pine v0 + Forest instancing v0 (CPU cull + LOD)
+- [ ] World core
+  - [x] TerrainGen v0: bible layout, spline roads with design grades, bridges, creek, rail (ADR 0001)
+  - [x] Heightfield queries (bilinear height, normal, slope)
+  - [ ] TerrainGen in a worker
+  - [ ] TerrainMesh chunks
+- [ ] Joinery v0 (done) + Pine v0 (done, plus birch) + Forest instancing v0 (CPU cull + LOD)
 - [ ] Input (KBM, gamepad, bindings, pointer lock), CameraRig v0, Movement v0 (capsule + BVH)
-- [ ] Audio core
-  - [ ] AudioEngine (unlock, buses, limiter, IR generator)
-  - [ ] Foundry worker pool + 3 recipes
-  - [ ] Lookahead scheduler
-  - [ ] DirectorCore v0 test phrase
+- [x] Audio core
+  - [x] AudioEngine (unlock, buses, limiter, IR generator)
+  - [x] Foundry worker pool + 3 recipes
+  - [x] Lookahead scheduler
+  - [x] DirectorCore test phrase (v1 already, for Lab #1)
 - [ ] Save core: IndexedDB, gzip, CRC, slots, migrations framework, round-trip test
-- [ ] Dev tools: overlay, cheats, `shots` (2 shots), `soak` and `audio-render` skeletons
+- [ ] Dev tools: overlay, cheats, `shots` (2 shots), `soak` (audio-render and map done)
 - [ ] **Done-check:**
   - [ ] CI green
   - [ ] Pages test scene (walkable valley, swaying pines, crunching footsteps, felt-piano phrase)
   - [ ] Save round-trip passes
   - [ ] Screenshot artifacts
   - [ ] Budgets shown in the dev overlay
+
+**Built early for later milestones:** Clock/calendar (M1.7) and the felling sim + SFX recipes (M1.4, Lab #2).
 
 ## M1 — Vertical Slice, already polished (≈ 14 sessions) ★
 Plan: `docs/plan/08-roadmap.md` → M1.
@@ -80,7 +97,7 @@ Plan: `docs/plan/08-roadmap.md` → M1.
   - [ ] Shoveling with banks
   - [ ] Footprints and trail map
   - [ ] Snowcap, sparkle
-- [ ] 7. Clock/calendar, 5 weather states, Environment key frames, radio forecast v0
+- [ ] 7. Clock/calendar (done), 5 weather states, Environment key frames, radio forecast v0
 - [ ] 8. Warmth v1, thermos and cocoa, lantern
 - [ ] 9. Economy mini
   - [ ] Ines buys wood

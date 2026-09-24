@@ -43,7 +43,13 @@
 - Node 22, Python 3.11 and `uv` are available.
 
 ## Commands
-None yet. M0 creates them: `npm run dev | build | check | test | content | econ | soak | shots | perf | audio | e2e | assets`. Keep this section updated as they land.
+- `npm run dev`: Vite dev server. `npm run build` / `npm run preview`: the production build.
+- `npm run check`: Biome lint, `tsc` typecheck and the sim/view boundary check. Run before every commit.
+- `npm test`: Vitest unit and sim tests. `npm run e2e`: Playwright against the built app.
+- `npm run audio [seeds…]`: offline soundtrack renders, spectrograms and QA metrics → `artifacts/audio/`.
+- `npm run map`: the terrain relief map → `artifacts/terrain/map.png`. Look at it after any terrain change.
+- `npm run lab:build <name>` / `npm run lab:check`: build a Review Lab for publishing, and its headless checks.
+- Still to come in M0: `shots`, `soak`, then `content`, `econ`, `perf` and `assets` as their milestones land.
 
 ## Current status
-Planning complete. **Next: M0 — Foundations** (see `docs/progress.md`).
+M0 (Foundations) in progress. Labs #1 (soundtrack) and #2 (felling) are in review. See `docs/progress.md`.
