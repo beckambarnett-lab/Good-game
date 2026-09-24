@@ -45,6 +45,8 @@ export interface ClockTuning {
   daysPerWinter: number;
   /** Game starts on Day 1 (Monday) at this hour; the clock is frozen during Hal's intro. */
   startHour: number;
+  /** Hour of the daily rollover: orders, seasoning, autosave, the day card (Plan Part 2.1). */
+  rolloverHour: number;
 }
 
 export const clock: ClockTuning = {
@@ -55,4 +57,31 @@ export const clock: ClockTuning = {
   pace: { relaxed: 1.33, standard: 1, brisk: 0.67 },
   daysPerWinter: 56,
   startHour: 15,
+  rolloverHour: 6,
+};
+
+export interface SimTuning {
+  /** Fixed simulation rate (Hz); the sim never reads frame time (Plan Part 7.3). */
+  stepHz: number;
+  /** Catch-up cap per rendered frame; backlog beyond it is dropped. */
+  maxStepsPerFrame: number;
+}
+
+export const sim: SimTuning = {
+  stepHz: 60,
+  maxStepsPerFrame: 5,
+};
+
+export interface SaveTuning {
+  /** Autosave cadence in real seconds of play (Plan Part 2.11). */
+  autosaveEveryRealSeconds: number;
+  /** Debounce after a purchase or completed order before autosaving. */
+  eventAutosaveDebounceSeconds: number;
+  manualSlots: number;
+}
+
+export const save: SaveTuning = {
+  autosaveEveryRealSeconds: 300,
+  eventAutosaveDebounceSeconds: 30,
+  manualSlots: 3,
 };

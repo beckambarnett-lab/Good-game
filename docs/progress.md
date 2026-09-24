@@ -9,6 +9,7 @@
 - 2026-09-24: Scaffold, core utilities, Sound Foundry, DirectorCore v1, Stage and Joinery built; Labs #1 and #2 published for review.
 - 2026-09-24: User supplied an alternative main theme. It was measured against P01; verdict and recommendation are in `docs/reviews/soundtrack-lullaby.md`. Waiting on provenance and direction.
 - 2026-09-24: TerrainGen v0 with the full town-bible layout (ADR 0001). `npm run map` added.
+- 2026-09-24: Sim core (system registry, fixed step, coarse advance, saved RNG streams, typed events, ClockSystem) and the save core (gzip + CRC, verify-after-write, A/B autosave + 3 manual slots, migrations, export/import, IndexedDB). Round trip passes in Node and in Chromium.
 
 ## Review queue (Plan Part 8.0)
 
@@ -26,6 +27,7 @@
   - softer felt-piano attacks;
   - an ambient air bed.
 - **Scripts not yet present:** `npm run soak` and `npm run shots` are declared in `package.json`, but `tools/soak.ts` and `tools/shots.ts` don't exist yet (M0 dev tools).
+- **Save fixtures:** add `tests/fixtures/saves/v1.hearthwood` at the first playtest release, then one per released save version.
 - **Terrain gaps:** the ridge switchbacks, Ridge Trail and shore footpath are not in the terrain data yet (M8/M7). Terrain generation takes about 1 s on the main thread; move it to a worker with TerrainMesh.
 
 ---
@@ -40,10 +42,11 @@ Plan: `docs/plan/08-roadmap.md` → M0.
   - [x] Update the Commands section of `CLAUDE.md`
 - [ ] App shell
   - [ ] State machine
-  - [ ] Fixed-step loop with interpolation
-  - [ ] EventBus, Context, Settings (localStorage)
+  - [ ] Fixed-step loop with interpolation: `FixedStepper` (core) and `Sim` done; the rAF GameLoop to come
+  - [ ] EventBus (done, core), Context, Settings (localStorage)
   - [ ] Visibility handling
-  - [x] Seeded RNG with forks
+  - [x] Seeded RNG with forks (streams saved and restored)
+  - [x] Sim skeleton: `Sim.ts` system registry, fixed step, `advance`, serialize; `ClockSystem`
 - [ ] Render core
   - [ ] Renderer (Stage done), Quality presets, DynamicResolution
   - [ ] PostFX (bloom, tone map, vignette done; Grade, grain to come)
@@ -63,12 +66,12 @@ Plan: `docs/plan/08-roadmap.md` → M0.
   - [x] Foundry worker pool + 3 recipes
   - [x] Lookahead scheduler
   - [x] DirectorCore test phrase (v1 already, for Lab #1)
-- [ ] Save core: IndexedDB, gzip, CRC, slots, migrations framework, round-trip test
+- [x] Save core: IndexedDB, gzip, CRC, slots (A/B autosave + 3 manual), migrations framework, round-trip test (unit + e2e)
 - [ ] Dev tools: overlay, cheats, `shots` (2 shots), `soak` (audio-render and map done)
 - [ ] **Done-check:**
   - [ ] CI green
   - [ ] Pages test scene (walkable valley, swaying pines, crunching footsteps, felt-piano phrase)
-  - [ ] Save round-trip passes
+  - [x] Save round-trip passes (`tests/unit/save.test.ts`, `tests/e2e/save.spec.ts`)
   - [ ] Screenshot artifacts
   - [ ] Budgets shown in the dev overlay
 

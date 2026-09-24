@@ -85,6 +85,20 @@ export class Rng {
     return (this.next() + this.next() + this.next() + this.next() - 2) * Math.sqrt(3);
   }
 
+  /** The generator's four state words (as unsigned integers), for saving mid-sequence. */
+  getState(): [number, number, number, number] {
+    // `^` leaves some words signed; every use is mod 2^32, so the unsigned form is equivalent.
+    return [this.a >>> 0, this.b >>> 0, this.c >>> 0, this.d >>> 0];
+  }
+
+  /** Restores a state from `getState()`, so the sequence continues exactly where it was saved. */
+  setState(state: readonly number[]): void {
+    if (state.length !== 4 || state.some((w) => !Number.isInteger(w) || w < 0 || w > 0xffffffff)) {
+      throw new Error('Rng.setState: expected four unsigned 32-bit words');
+    }
+    [this.a, this.b, this.c, this.d] = state as [number, number, number, number];
+  }
+
   /**
    * Independent child stream derived from this stream's state and a label, so adding a new
    * consumer never shifts another system's random sequence.

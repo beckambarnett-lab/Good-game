@@ -44,6 +44,17 @@ describe('Rng', () => {
     for (let i = 0; i < 200; i++) expect(r.weightedIndex([0, 1, 0])).toBe(1);
   });
 
+  it('a restored state continues the exact sequence', () => {
+    const r = new Rng(123);
+    for (let i = 0; i < 1000; i++) r.nextU32();
+    const state = r.getState();
+    expect(state.every((w) => Number.isInteger(w) && w >= 0 && w <= 0xffffffff)).toBe(true);
+    const copy = new Rng(1);
+    copy.setState(state);
+    for (let i = 0; i < 1000; i++) expect(copy.nextU32()).toBe(r.nextU32());
+    expect(() => copy.setState([1, 2, 3])).toThrow();
+  });
+
   it('hashString is stable', () => {
     expect(hashString('hearthwood')).toBe(hashString('hearthwood'));
     expect(hashString('a')).not.toBe(hashString('b'));
