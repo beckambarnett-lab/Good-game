@@ -49,6 +49,10 @@ export interface ForestDef {
   minGap: number;
   /** Heights (m) by size (Plan Part 2.5.2). */
   heights: Readonly<Record<SiteSize, readonly [number, number]>>;
+  /** Tree models are built this tall (m); a site scales them to its own height. */
+  modelHeight: number;
+  /** Trunk radius at the base (m) of a model-height tree; it scales with the tree. */
+  trunkRadius: Readonly<Record<TreeSpecies, number>>;
 }
 
 const MIXED = { pine: 0.7, birch: 0.3 } as const;
@@ -209,4 +213,6 @@ export const wrenhollowForests: ForestDef = {
   padClearance: 4,
   minGap: 2.5,
   heights: { small: [7, 9], medium: [11, 13], large: [14, 17] },
+  modelHeight: 12,
+  trunkRadius: { pine: 0.2, birch: 0.14 },
 };

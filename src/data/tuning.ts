@@ -125,6 +125,95 @@ export const terrainView: TerrainViewTuning = {
   railTint: 0.7,
 };
 
+export interface MovementTuning {
+  /** Speeds (m/s; Plan Part 2.3). */
+  walkSpeed: number;
+  jogSpeed: number;
+  /** Seconds to reach walking speed from rest, and to stop from it. */
+  accelTime: number;
+  stopTime: number;
+  /** Fastest turn toward the heading (degrees per second). */
+  turnRate: number;
+  /** Kinematic capsule (m) and the steepest walkable ground (degrees). */
+  capsuleRadius: number;
+  capsuleHeight: number;
+  maxSlope: number;
+  /** The hop, purely for fun (m), and gravity (m/s²). */
+  hopHeight: number;
+  gravity: number;
+  /** Ice: top-speed and acceleration multipliers (a gentle slide without crampons). */
+  iceSpeed: number;
+  iceGrip: number;
+  /** Keep this far inside the world's edge (m). */
+  worldMargin: number;
+}
+
+export const movement: MovementTuning = {
+  walkSpeed: 3.4,
+  jogSpeed: 5.2,
+  accelTime: 0.18,
+  stopTime: 0.12,
+  turnRate: 600,
+  capsuleRadius: 0.35,
+  capsuleHeight: 1.7,
+  maxSlope: 38,
+  hopHeight: 0.45,
+  gravity: 9.81,
+  iceSpeed: 0.97,
+  iceGrip: 0.35,
+  worldMargin: 6,
+};
+
+export interface CameraRigTuning {
+  /** Orbit distance (m): default, and the wheel-zoom range. */
+  distance: number;
+  minDistance: number;
+  maxDistance: number;
+  /** Pitch limits (degrees; positive looks down on the player). */
+  minPitch: number;
+  maxPitch: number;
+  startPitch: number;
+  /** The orbit target sits this far below the head. */
+  targetDrop: number;
+  /** Spring rates (ω): following the player, zooming, and collision pull-in / release. */
+  followOmega: number;
+  zoomOmega: number;
+  pullInOmega: number;
+  releaseOmega: number;
+  /** Camera clearance above the ground and the collision probe radius (m). */
+  groundClearance: number;
+  probeRadius: number;
+  /** Lazy recenter: seconds without look input while moving, then degrees per second. */
+  recenterDelay: number;
+  recenterRate: number;
+  /** Look speed: radians per pixel of mouse at sensitivity 1, and per second of full stick. */
+  mouseRadiansPerPixel: number;
+  stickRadiansPerSecond: number;
+  /** Wheel zoom step (m per notch). */
+  zoomStep: number;
+}
+
+export const cameraRig: CameraRigTuning = {
+  distance: 6.5,
+  minDistance: 3.5,
+  maxDistance: 12,
+  minPitch: -10,
+  maxPitch: 60,
+  startPitch: 16,
+  targetDrop: 0.3,
+  followOmega: 8,
+  zoomOmega: 6,
+  pullInOmega: 20,
+  releaseOmega: 4,
+  groundClearance: 0.35,
+  probeRadius: 0.25,
+  recenterDelay: 2,
+  recenterRate: 60,
+  mouseRadiansPerPixel: 0.0025,
+  stickRadiansPerSecond: 2.6,
+  zoomStep: 0.8,
+};
+
 export interface ForestViewTuning {
   /** Distance (m) where LOD0 gives way to LOD1, and LOD1 to LOD2 (Plan Part 5.5: 40 / 120). */
   lodDistances: readonly [number, number];
@@ -136,8 +225,6 @@ export interface ForestViewTuning {
   updateHz: number;
   /** Distinct LOD0 models per species, so near trees don't repeat. */
   lod0Variants: number;
-  /** Height (m) the tree models are built at; instances scale to their site's height. */
-  referenceHeight: number;
   saplingHeight: number;
   /** Per-tree brightness variation (±). */
   tintAmount: number;
@@ -152,7 +239,6 @@ export const forestView: ForestViewTuning = {
   stumpDistance: 60,
   updateHz: 10,
   lod0Variants: 3,
-  referenceHeight: 12,
   saplingHeight: 1.3,
   tintAmount: 0.08,
   swayAmplitude: 0.18,
@@ -166,10 +252,10 @@ export interface ValleyViewTuning {
   far: number;
   /** Light scale so lit snow reads white (until Environment key frames calibrate each hour, M1). */
   exposure: number;
-  /** Idle camera circling the cabin until the CameraRig arrives (M0 placeholder). */
-  orbitRadius: number;
-  orbitHeight: number;
-  orbitSpeed: number;
+  /** Where the walker starts: the cabin pad, facing the valley (yaw rad; facing (sin, cos)). */
+  spawnX: number;
+  spawnZ: number;
+  spawnYaw: number;
   /** World seed of the test scene, until New Game (M1) chooses one per save. */
   seed: number;
 }
@@ -178,9 +264,9 @@ export const valleyView: ValleyViewTuning = {
   fogDensity: 0.0025,
   far: 1200,
   exposure: 1.6,
-  orbitRadius: 28,
-  orbitHeight: 9,
-  orbitSpeed: 0.05,
+  spawnX: -166,
+  spawnZ: -22,
+  spawnYaw: Math.PI / 2,
   seed: 1847261,
 };
 

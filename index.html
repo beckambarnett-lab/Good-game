@@ -17,6 +17,12 @@
       .overlay h1 { font-weight: normal; font-size: 3.2rem; letter-spacing: 0.06em; margin: 0; }
       .overlay p { margin: 0; font-size: 1.1rem; }
       .overlay .quiet { opacity: 0.7; }
+      .hint {
+        position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 1;
+        padding: 6px 14px; border-radius: 14px; background: rgba(11, 19, 48, 0.45);
+        font: 14px Georgia, 'Times New Roman', serif; color: #f3ebdd; pointer-events: none; white-space: nowrap;
+      }
+      .hint[hidden] { display: none; }
     </style>
   </head>
   <body>

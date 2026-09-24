@@ -18,6 +18,8 @@ export const browserFrameClock: FrameClock = {
 };
 
 export interface LoopHooks {
+  /** Before this frame's steps: sample input so it drives these steps, not the next frame's. */
+  input?(frameSeconds: number): void;
   /** One fixed simulation step of `dt` seconds. */
   step(dt: number): void;
   /** Draws a frame: `alpha` interpolates between the last two sim states; `frameSeconds` is clamped. */
@@ -91,6 +93,7 @@ export class GameLoop {
     this.lastFrameMs = timeMs;
     const elapsed = Math.max(0, elapsedMs / 1000);
 
+    this.hooks.input?.(Math.min(elapsed, this.maxRenderDelta));
     let alpha = 1;
     let steps = 0;
     if (this.simOn) {

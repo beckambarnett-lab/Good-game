@@ -9,6 +9,7 @@
 - 2026-09-24: Scaffold, core utilities, Sound Foundry, DirectorCore v1, Stage and Joinery built; Labs #1 and #2 published for review.
 - 2026-09-24: User supplied an alternative main theme. It was measured against P01; verdict and recommendation are in `docs/reviews/soundtrack-lullaby.md`. Waiting on provenance and direction.
 - 2026-09-24: TerrainGen v0 with the full town-bible layout (ADR 0001). `npm run map` added.
+- 2026-09-24: The valley is walkable: Input (KBM + gamepad + pointer lock, bindings as data), CameraRig (orbit, springs, terrain collision, lazy recenter), Movement (kinematic capsule per Plan 2.3: walk/jog, ice slide, slope limit, trunk collisions, hop) and a placeholder walker. Walking e2e test.
 - 2026-09-24: Forest v0: ~3,200 tree sites (Poisson-disc, deterministic, stable ids; woodlot 60 = 38/12/10, farm edge 20) generated in the terrain worker; one InstancedMesh per species × LOD with CPU culling, LOD hysteresis and wind sway (11 draw calls).
 - 2026-09-24: App shell (flow state machine, GameLoop, Settings, Visibility); TerrainMesh (batched chunk LODs); the valley test scene boots Splash → Loading (terrain worker) → Playing; `npm run shots` with 3 shots (S01, S04, S08) and budgets; valley e2e smoke test; shots uploaded by CI.
 - 2026-09-24: Sim core (system registry, fixed step, coarse advance, saved RNG streams, typed events, ClockSystem) and the save core (gzip + CRC, verify-after-write, A/B autosave + 3 manual slots, migrations, export/import, IndexedDB). Round trip passes in Node and in Chromium.
@@ -29,6 +30,7 @@
   - softer felt-piano attacks;
   - an ambient air bed.
 - **Scripts not yet present:** `npm run soak` and `npm run shots` are declared in `package.json`, but `tools/soak.ts` and `tools/shots.ts` don't exist yet (M0 dev tools).
+- **Controls feel** (feel-critical → Winter Walk lab): walk/jog speeds, acceleration, camera distance, springs and recenter are the plan's numbers, not yet playtested. No shake yet; trunks don't dither-fade yet (HearthMaterial).
 - **Forest:** oaks (ridge old growth), apples and the maple grove arrive with M7/M8; forest cards beyond 300 m and quality-preset density with the render core; tree shadows don't sway yet (the depth material lacks the sway patch); the ridge's 120 fellable sites are designated in M8.
 - **Valley look (M0 placeholders):** lighting uses a flat exposure scale (1.6) until the Environment key frames (M1.7); the valley is empty until the forest and buildings land; the world edge shows without the backdrop mountains; roads are vertex colour on the terrain, so their edges stair-step at far LODs (road ribbons come with M3).
 - **Save fixtures:** add `tests/fixtures/saves/v1.hearthwood` at the first playtest release, then one per released save version.
@@ -65,7 +67,7 @@ Plan: `docs/plan/08-roadmap.md` → M0.
   - [x] TerrainGen in a worker (`terrain.worker.ts`, transferable payload)
   - [x] TerrainMesh chunks (32 m × 4 LODs, gap-sized skirts, one BatchedMesh, LOD at 10 Hz with hysteresis; smooth-shaded, ADR 0002)
 - [x] Joinery v0 + Pine v0 (plus birch; LOD1/LOD2 variants, stumps) + Forest instancing v0 (CPU cull + LOD at 10 Hz, sway)
-- [ ] Input (KBM, gamepad, bindings, pointer lock), CameraRig v0, Movement v0 (capsule + BVH)
+- [x] Input (KBM, gamepad, bindings, pointer lock), CameraRig v0 (orbit, springs, terrain collision, lazy recenter), Movement v0 (capsule on the heightfield + trunk colliders; the building BVH arrives with the cabin in M1)
 - [x] Audio core
   - [x] AudioEngine (unlock, buses, limiter, IR generator)
   - [x] Foundry worker pool + 3 recipes

@@ -19,14 +19,14 @@ import {
 } from 'three';
 import { Rng } from '../../core/rng.ts';
 import type { ForestViewTuning } from '../../data/tuning.ts';
-import type { TreeSpecies } from '../../data/world/forests.ts';
+import { type TreeSpecies, wrenhollowForests } from '../../data/world/forests.ts';
 import type { TreeSite } from '../../sim/world/Sites.ts';
 import { shared } from '../render/sharedUniforms.ts';
 import type { Part } from './Joinery.ts';
 import { birch, birchLod, pine, pineLod, stumpPart } from './trees.ts';
 
-/** Trunk radius of the reference-height models (m); instances scale with height. */
-const TRUNK_RADIUS: Record<TreeSpecies, number> = { pine: 0.2, birch: 0.14 };
+/** Trunk radius of the model-height trees (m); shared with the sim's colliders. */
+const TRUNK_RADIUS = wrenhollowForests.trunkRadius;
 /** Where the crown's bounding sphere sits (fraction of height) and its radius (fraction of height). */
 const SPHERE_CENTRE = 0.55;
 const SPHERE_RADIUS = 0.6;
@@ -80,7 +80,7 @@ export class Forest {
     material.onBeforeCompile = (shader) => {
       shader.uniforms.uTime = shared.uTime;
       shader.uniforms.uWind = shared.uWind;
-      shader.uniforms.uSway = { value: [t.swayAmplitude, t.swaySpeed, t.referenceHeight] };
+      shader.uniforms.uSway = { value: [t.swayAmplitude, t.swaySpeed, wrenhollowForests.modelHeight] };
       shader.vertexShader = `uniform float uTime;\nuniform vec2 uWind;\nuniform vec3 uSway;\n${shader.vertexShader.replace(
         '#include <begin_vertex>',
         /* glsl */ `#include <begin_vertex>
@@ -99,7 +99,7 @@ export class Forest {
 
     const count = (predicate: (s: TreeSite) => boolean) => sites.filter(predicate).length;
     const rng = new Rng(seed).fork('forest-models');
-    const h = t.referenceHeight;
+    const h = wrenhollowForests.modelHeight;
     const models: Record<TreeSpecies, { lod0: Part[]; lod1: Part; lod2: Part }> = {
       pine: {
         lod0: Array.from({ length: t.lod0Variants }, () => {
