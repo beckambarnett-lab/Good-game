@@ -1,6 +1,7 @@
 # Review: Felling minigame (Lab #2)
 
 - **Design:** the user's swinging-bar idea. Chop when the marker is in the green centre, 3 chops fell the tree, bigger trees swing slower.
+- **Lab link:** https://claude.ai/artifact/6WoiRfvAxPesv8yLczJVGh
 - **Status:** in review
 
 ## Round 1 (2026-09-24)
