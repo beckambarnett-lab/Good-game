@@ -15,6 +15,8 @@ jobs:
       - run: npm ci
       - run: npm run check
       - run: npm test
+      # 30 in-game days headless: no NaNs or escapes, byte-stable saves, step cost, flat memory.
+      - run: npm run soak
       - run: npm run build
       - run: npx playwright install --with-deps chromium
       - run: npm run e2e

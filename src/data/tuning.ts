@@ -418,6 +418,18 @@ export const postFx: PostFxTuning = {
   vignette: { darkness: 0.28, offset: 0.35 },
 };
 
+/** Frame and memory budgets (Plan Part 7.8, Medium, 1080p), shown by the dev overlay. */
+export const frameBudget = {
+  frameMs: 16.6,
+  /** The worst frame of the last couple of seconds stands in for p99. */
+  worstFrameMs: 20,
+  simStepMs: 2.5,
+  renderCpuMs: 4,
+  heapMB: 350,
+  gpuTargetsMB: 160,
+  audioPcmMB: 64,
+} as const;
+
 /** Render budgets for the Medium preset (Plan Part 7.8), checked by `npm run shots`. */
 export interface RenderBudget {
   mainCalls: number;

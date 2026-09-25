@@ -25,6 +25,7 @@ import {
   PCFSoftShadowMap,
   PerspectiveCamera,
   Scene,
+  Vector2,
   Vector3,
   WebGLRenderer,
 } from 'three';
@@ -76,6 +77,20 @@ export class Stage {
   private gpuSilence = 0;
   private unmeasured = 0;
   private targetMs = 1000 / DEFAULT_TARGET_FPS;
+  /**
+   * The last frame's draw calls and triangles: the main scene pass, the sun's shadow pass and the
+   * post-processing passes, for the dev overlay's per-pass budgets (Plan Part 7.8).
+   */
+  readonly frameInfo = {
+    mainCalls: 0,
+    mainTriangles: 0,
+    shadowCalls: 0,
+    shadowTriangles: 0,
+    postCalls: 0,
+    gpuMs: null as number | null,
+  };
+  private readonly passCount = { sceneCalls: 0, sceneTriangles: 0, shadowCalls: 0, shadowTriangles: 0 };
+  private readonly drawingSize = new Vector2();
   private readonly host: HTMLElement;
   private last = performance.now();
   private readonly updaters: ((dt: number, t: number) => void)[] = [];
@@ -96,6 +111,9 @@ export class Stage {
     });
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = PCFSoftShadowMap;
+    // Counters span the whole frame (every composer pass), reset in renderFrame.
+    this.renderer.info.autoReset = false;
+    this.countShadowPass();
     host.appendChild(this.renderer.domElement);
     this.gpuTimer = new GpuTimer(this.renderer.getContext() as WebGL2RenderingContext);
     this.quality = defaultQuality();
@@ -133,7 +151,7 @@ export class Stage {
     this.lightUp.crossVectors(this.lightDir, this.lightRight);
 
     this.composer = new EffectComposer(this.renderer, { frameBufferType: HalfFloatType, multisampling: 4 });
-    this.composer.addPass(new RenderPass(this.scene, this.camera));
+    this.composer.addPass(this.countScenePass(new RenderPass(this.scene, this.camera)));
     this.buildPost(this.quality);
     this.applyShadows(this.quality.shadow);
 
@@ -233,6 +251,34 @@ export class Stage {
     }
   }
 
+  /** Counts what the sun's shadow map draws, which three renders inside the scene pass. */
+  private countShadowPass(): void {
+    const shadowMap = this.renderer.shadowMap;
+    const renderShadows = shadowMap.render.bind(shadowMap);
+    const info = this.renderer.info.render;
+    shadowMap.render = (...args: Parameters<typeof renderShadows>) => {
+      const calls = info.calls;
+      const triangles = info.triangles;
+      renderShadows(...args);
+      this.passCount.shadowCalls += info.calls - calls;
+      this.passCount.shadowTriangles += info.triangles - triangles;
+    };
+  }
+
+  /** Counts the scene pass (main view plus its shadow map); the rest of the frame is post. */
+  private countScenePass(pass: RenderPass): RenderPass {
+    const renderScene = pass.render.bind(pass);
+    const info = this.renderer.info.render;
+    pass.render = (...args: Parameters<typeof renderScene>) => {
+      const calls = info.calls;
+      const triangles = info.triangles;
+      renderScene(...args);
+      this.passCount.sceneCalls += info.calls - calls;
+      this.passCount.sceneTriangles += info.triangles - triangles;
+    };
+    return pass;
+  }
+
   /** Feeds this frame's cost to dynamic resolution and applies any step. */
   private adaptResolution(dt: number, gpuMs: number | null): void {
     if (!this.quality.dynamic) return;
@@ -263,9 +309,20 @@ export class Stage {
     for (const u of this.updaters) u(dt, this.elapsed);
     this.sky.position.copy(this.camera.position);
     const gpuMs = this.gpuTimer.poll();
+    const info = this.renderer.info;
+    const pc = this.passCount;
+    info.reset();
+    pc.sceneCalls = pc.sceneTriangles = pc.shadowCalls = pc.shadowTriangles = 0;
     this.gpuTimer.begin();
     this.composer.render(dt);
     this.gpuTimer.end();
+    const f = this.frameInfo;
+    f.mainCalls = pc.sceneCalls - pc.shadowCalls;
+    f.mainTriangles = pc.sceneTriangles - pc.shadowTriangles;
+    f.shadowCalls = pc.shadowCalls;
+    f.shadowTriangles = pc.shadowTriangles;
+    f.postCalls = info.render.calls - pc.sceneCalls;
+    if (gpuMs !== null) f.gpuMs = gpuMs;
     this.adaptResolution(dt, gpuMs);
   }
 
@@ -298,6 +355,29 @@ export class Stage {
       .addScaledVector(this.lightDir, d);
     this.sun.target.position.copy(this.snapped);
     this.sun.position.copy(this.snapped).add(this.sunOffset);
+  }
+
+  /**
+   * Rough GPU memory of the render targets and shadow map (MB), for the dev overlay's budget
+   * (Plan 7.8: textures + targets ≤ 160 MB): half-float colour buffers, depth, MSAA storage, the
+   * bloom mip chain and the sun's shadow map.
+   */
+  estimateTargetsMB(): number {
+    const size = this.renderer.getDrawingBufferSize(this.drawingSize);
+    const px = size.x * size.y;
+    const samples = this.composer.multisampling;
+    let bytes = px * 4 * 2; // the canvas: colour + depth/stencil
+    bytes += px * (8 * 2 + 4); // composer input and output (RGBA16F) and depth
+    if (samples > 0) bytes += px * (8 + 4) * samples;
+    if (this.quality.bloom !== 'off') bytes += px * 0.25 * 8 * (4 / 3); // half-res mip chain
+    if (this.sun.castShadow) bytes += this.sun.shadow.mapSize.x * this.sun.shadow.mapSize.y * 4;
+    return bytes / (1024 * 1024);
+  }
+
+  /** The preset name shown by the dev overlay. */
+  get qualityLabel(): string {
+    const q = this.quality;
+    return `${q.antiAliasing.toUpperCase()} · shadows ${q.shadow ? `${q.shadow.mapSize}/${q.shadow.distance} m` : 'off'} · bloom ${q.bloom}`;
   }
 
   /** Renders the scene directly (no post) to count the main and shadow passes separately. */

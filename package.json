@@ -18,7 +18,7 @@
     "test": "vitest run",
     "e2e": "playwright test",
     "audio": "node tools/audio-render.ts",
-    "soak": "node tools/soak.ts",
+    "soak": "node --expose-gc tools/soak.ts",
     "shots": "node tools/shots.ts",
     "lab:build": "node tools/lab-build.ts",
     "lab:check": "node tools/lab-check.ts",

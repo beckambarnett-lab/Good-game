@@ -22,6 +22,11 @@ import {
   valleyView,
 } from '../data/tuning.ts';
 import { wrenhollowForests } from '../data/world/forests.ts';
+import { places } from '../data/world/places.ts';
+import { SURFACE, type SurfaceKind } from '../data/world/terrain.ts';
+import { Cheats } from '../dev/Cheats.ts';
+import { DevOverlay, type DevReadings } from '../dev/DevOverlay.ts';
+import { formatTime } from '../sim/clock/Clock.ts';
 import { ClockSystem } from '../sim/clock/ClockSystem.ts';
 import { PlayerSystem, type Pose } from '../sim/player/PlayerSystem.ts';
 import { Sim } from '../sim/Sim.ts';
@@ -82,7 +87,13 @@ export interface AppOptions {
   valleyPhrases?: boolean;
   /** Air temperature (°C) for the cold squeak, until Weather (M1.7) provides it. */
   airTemperature?: () => number;
+  /** The dev overlay and cheats (dev builds, `?dev=1`): shown at once, or hidden until F3. */
+  devTools?: 'visible' | 'hidden';
 }
+
+/** Weight of the newest sample in the smoothed dev timings. */
+const TIMING_SMOOTHING = 0.1;
+const surfaceKindOf = new Map((Object.entries(SURFACE) as [SurfaceKind, number][]).map(([k, c]) => [c, k]));
 
 export class App {
   readonly fsm = new StateMachine<AppState>('boot', appTransitions);
@@ -114,6 +125,11 @@ export class App {
   /** The valley's sound, once unlocked and loaded (none in shot mode). */
   audio: ValleyAudio | null = null;
   private wasGrounded = true;
+  /** Smoothed CPU cost (ms) of a sim step and of drawing a frame, for the dev overlay. */
+  readonly timing = { stepMs: 0, renderMs: 0 };
+  private dev: DevOverlay | null = null;
+  /** The cheats, once the world exists (dev builds and tests). */
+  cheats: Cheats | null = null;
 
   constructor(host: HTMLElement, options: AppOptions = {}) {
     this.options = options;
@@ -203,7 +219,11 @@ export class App {
       new FixedStepper(1 / simTuning.stepHz, simTuning.maxStepsPerFrame),
       {
         input: (dt) => this.readInput(dt),
-        step: () => this.sim?.step(),
+        step: () => {
+          const t0 = performance.now();
+          this.sim?.step();
+          this.timing.stepMs += (performance.now() - t0 - this.timing.stepMs) * TIMING_SMOOTHING;
+        },
         render: (alpha, dt) => this.render(alpha, dt),
       },
       browserFrameClock,
@@ -216,6 +236,7 @@ export class App {
     else this.frameStart();
     const warm = await stage.prewarm();
     console.info(`Shaders pre-warmed in ${warm.toFixed(0)} ms`);
+    if (!shot && this.options.devTools) this.startDevTools(this.options.devTools === 'visible');
     this.say('');
     this.fsm.go('playing');
     this.loop.start();
@@ -401,8 +422,59 @@ export class App {
     this.stage.followShadow(this.focus);
   }
 
+  /** Skips game time through every system's coarse advance (cheats, and sleeping later). */
+  advanceMinutes(minutes: number): void {
+    this.sim?.advance(minutes);
+  }
+
+  private startDevTools(visible: boolean): void {
+    const clockSystem = this.clockSystem;
+    if (!this.stage || !clockSystem) return;
+    this.cheats = new Cheats(
+      {
+        clock: clockSystem.clock,
+        advanceMinutes: (m) => this.advanceMinutes(m),
+        teleport: (x, z, yaw) => this.teleport(x, z, yaw),
+      },
+      places,
+    );
+    this.dev = new DevOverlay(this.host, () => this.devReadings(), this.cheats, places, visible);
+  }
+
+  private devReadings(): DevReadings {
+    const stage = this.stage;
+    const f = stage?.frameInfo;
+    const clock = this.clockSystem?.clock;
+    const s = this.player?.state;
+    const heap = (performance as unknown as { memory?: { usedJSHeapSize: number } }).memory;
+    const MB = 1024 * 1024;
+    return {
+      fps: this.loop?.stats.fps ?? 0,
+      frameMs: this.loop?.stats.frameMs ?? 0,
+      gpuMs: stage?.gpuTimed ? (f?.gpuMs ?? null) : null,
+      stepMs: this.timing.stepMs,
+      stepsPerFrame: this.loop?.stats.stepsLastFrame ?? 0,
+      renderMs: this.timing.renderMs,
+      mainCalls: f?.mainCalls ?? 0,
+      mainTriangles: f?.mainTriangles ?? 0,
+      shadowCalls: f?.shadowCalls ?? 0,
+      shadowTriangles: f?.shadowTriangles ?? 0,
+      postCalls: f?.postCalls ?? 0,
+      heapMB: heap ? heap.usedJSHeapSize / MB : null,
+      targetsMB: stage?.estimateTargetsMB() ?? 0,
+      pcmMB: (this.audio?.pcmBytes ?? 0) / MB,
+      renderScale: stage?.renderScale ?? 1,
+      quality: `${this.settings.get('graphics', 'preset')} · ${stage?.qualityLabel ?? ''}`,
+      time: clock ? `${formatTime(clock.now())} · ${clock.pace}${clock.frozen ? ' · frozen' : ''}` : '',
+      where: s
+        ? `x ${s.x.toFixed(1)} z ${s.z.toFixed(1)} y ${s.y.toFixed(1)} · ${surfaceKindOf.get(s.surface) ?? '?'}${s.grounded ? '' : ' · airborne'}`
+        : '',
+    };
+  }
+
   private render(alpha: number, dt: number): void {
     if (!this.stage || !this.valley) return;
+    const t0 = performance.now();
     const cam = this.stage.camera;
     if (this.player && this.rig && this.avatar) {
       const p = this.player.pose(alpha, this.pose);
@@ -419,6 +491,8 @@ export class App {
     this.valley.update(cam, dt);
     this.stage.followShadow(this.focus);
     this.stage.renderFrame(dt);
+    this.timing.renderMs += (performance.now() - t0 - this.timing.renderMs) * TIMING_SMOOTHING;
+    this.dev?.frame();
     if (this.shot && !this.shot.ready && ++this.shotFrames >= SHOT_SETTLE_FRAMES) {
       this.shot.passes = this.stage.measurePasses();
       this.shot.ready = true;

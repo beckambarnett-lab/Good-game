@@ -5,6 +5,7 @@
 
 import { App } from '../../app/App.ts';
 import { cameraRig, footsteps, gait, type MovementTuning, movement, valleyView } from '../../data/tuning.ts';
+import { places } from '../../data/world/places.ts';
 import { SURFACE, type SurfaceKind } from '../../data/world/terrain.ts';
 import type { MusicFrequency } from '../../view/audio/ValleyMusic.ts';
 
@@ -33,13 +34,6 @@ const app = new App($('app'), {
 app.settings.set('audio', 'musicFrequency', LAB_MUSIC_FREQUENCY);
 
 // ---- Places ------------------------------------------------------------------------------
-const places: { label: string; note: string; x: number; z: number; yaw: number }[] = [
-  { label: 'Cabin', note: 'powder', x: valleyView.spawnX, z: valleyView.spawnZ, yaw: valleyView.spawnYaw },
-  { label: 'Woodlot', note: 'among the trees', x: -212, z: -62, yaw: Math.PI / 2 },
-  { label: 'Main Street', note: 'packed road', x: -40, z: 0, yaw: Math.PI / 2 },
-  { label: 'Lake', note: 'ice', x: 232, z: 40, yaw: -Math.PI / 2 },
-  { label: 'Lookout', note: '88 m up', x: -40, z: -225, yaw: 0 },
-];
 for (const p of places) {
   const b = document.createElement('button');
   b.type = 'button';

@@ -4,6 +4,7 @@
 **Last updated:** 2026-09-24
 
 ## Status log
+- 2026-09-25: Dev tools: the dev overlay (F3 in dev builds, `?dev=1` anywhere) shows frame, GPU, sim-step and render CPU times, per-pass draws and triangles, heap, GPU-target and audio memory against the Plan 7.8 budgets; time and teleport cheats; `npm run soak` runs 30 in-game days headless in about 4 s (runs in CI); `pages.yml` deploys main and milestone tags.
 - 2026-09-24: Render core, part 1: Quality presets (the Plan 5.10 table, resolved from the graphics settings, Custom included) applied to anti-aliasing (MSAA/SMAA), bloom, shadows and render scale; dynamic resolution with a GPU timer or a frame-interval fallback (ADR 0003); shaders pre-warmed from the first view before play.
 - 2026-09-24: Lab #3 **Winter walk** published for review: the real valley with live sliders for walking, camera and footsteps; footsteps on powder, packed snow and ice (plus the cold squeak and a coat rustle) through a seeded footstep planner; the valley's occasional 4-bar felt-piano phrase (Director phrase mode). Both sounds stay lab-only until approved. `npm run audio` now measures every SFX variant and renders a walk.
 - 2026-09-24: Complete development plan written (`docs/plan/`).
@@ -32,7 +33,8 @@
   - dynamic arc and sectional contrast;
   - softer felt-piano attacks;
   - an ambient air bed.
-- **Scripts not yet present:** `npm run soak` is declared in `package.json`, but `tools/soak.ts` doesn't exist yet (M0 dev tools).
+- **Pages deploy:** `pages.yml` is ready but deploys only from `main` or a milestone tag, and needs the one-time setting Settings → Pages → Source: GitHub Actions. I'll ask for it at the M0 playtest.
+- **Cheats:** weather and coin cheats wait on the Environment (M1.7) and the economy (M1.9).
 - **Controls feel and footsteps** are in review (Lab #3). Until approved, the game build keeps footstep sounds and the valley's piano phrases off (`AppOptions.footstepSounds` / `valleyPhrases`), so the M0 done-check "footsteps crunch, a felt-piano phrase plays" waits on that approval. No camera shake yet; trunks don't dither-fade yet (HearthMaterial).
 - **Audio mix:** the valley applies the Plan 6.10 bus levels (music −8 dB under world SFX); the standalone Labs #1 and #2 still play their buses at 0 dB, so their levels aren't comparable with the game's. The felt-piano bank renders all 46 zones (~28 MB) even for the valley's short phrase; render only the needed range later.
 - **Footstep surfaces:** the M0 valley has powder, packed (roads, rail bed) and ice. Deep-snow plunge, gravel, planks, interiors, trail wear and boot tiers join as their systems land (M1: snow patches and the trail map).
@@ -48,8 +50,8 @@ Plan: `docs/plan/08-roadmap.md` → M0.
 
 - [ ] Scaffold
   - [x] Vite + TS strict + Biome + Vitest + Playwright 1.56.x (executablePath)
-  - [ ] npm scripts (Plan 7.10): dev, build, check, test, e2e, audio, map, lab:* done; soak, shots to come
-  - [ ] `ci.yml` (done) + `pages.yml`
+  - [x] npm scripts (Plan 7.10): dev, build, check, test, e2e, audio, map, shots, soak, lab:* (content, econ, perf, assets land with their milestones)
+  - [x] `ci.yml` + `pages.yml` (deploy needs the one-time Pages setting)
   - [x] Update the Commands section of `CLAUDE.md`
 - [ ] App shell
   - [x] State machine: `StateMachine` (core) + the app flow and per-state traits (`src/app/states.ts`: which states step the world and run the clock)
@@ -79,13 +81,13 @@ Plan: `docs/plan/08-roadmap.md` → M0.
   - [x] Lookahead scheduler
   - [x] DirectorCore test phrase (v1 already, for Lab #1)
 - [x] Save core: IndexedDB, gzip, CRC, slots (A/B autosave + 3 manual), migrations framework, round-trip test (unit + e2e)
-- [ ] Dev tools: overlay, cheats, `soak` (`shots` with 3 shots, audio-render and map done)
+- [x] Dev tools: overlay with budgets, cheats (time, teleport; weather and coins with their systems), `soak` (30 days, in CI), `shots`, audio-render, map
 - [ ] **Done-check:**
   - [ ] CI green
   - [ ] Pages test scene (walkable valley, swaying pines, crunching footsteps, felt-piano phrase): all built; footsteps and the phrase are in review (Lab #3), so they join the Pages build on approval
   - [x] Save round-trip passes (`tests/unit/save.test.ts`, `tests/e2e/save.spec.ts`)
   - [x] Screenshot artifacts (`npm run shots`; CI uploads `artifacts/shots/`)
-  - [ ] Budgets shown in the dev overlay
+  - [x] Budgets shown in the dev overlay (`?dev=1`; e2e `tests/e2e/dev.spec.ts`)
 
 **Built early for later milestones:** Clock/calendar (M1.7), the felling sim + SFX recipes (M1.4, Lab #2) and the footstep system (M1.11, Lab #3).
 

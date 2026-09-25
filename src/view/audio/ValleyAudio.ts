@@ -32,6 +32,8 @@ export class ValleyAudio {
   footsteps: Footsteps | null = null;
   /** Null until the piano has rendered (or when the valley has no music). */
   music: ValleyMusic | null = null;
+  /** Rendered PCM held for playback (bytes), for the dev overlay's audio budget. */
+  pcmBytes = 0;
   private readonly rng: Rng;
 
   private constructor(ctx: BaseAudioContext, seed: number) {
@@ -42,12 +44,15 @@ export class ValleyAudio {
   static async create(ctx: BaseAudioContext, o: ValleyAudioOptions): Promise<ValleyAudio> {
     const audio = new ValleyAudio(ctx, o.seed);
     if (o.footsteps) {
-      const sfx = new Sfx(audio.engine, await renderSfxBank(FOOTSTEP_SFX));
+      const bank = await renderSfxBank(FOOTSTEP_SFX);
+      for (const list of bank.values()) for (const d of list) audio.pcmBytes += d.byteLength;
+      const sfx = new Sfx(audio.engine, bank);
       audio.footsteps = new Footsteps(audio.engine, sfx, o.footsteps, o.walkSpeed, audio.rng.fork('steps'));
     }
     const music = o.music;
     if (music) {
       void renderBanks(['feltPiano'], foundry.bankSeed).then((banks) => {
+        for (const b of banks.values()) for (const z of b.zones) audio.pcmBytes += z.data.byteLength;
         const player = new MusicPlayer(audio.engine, banks);
         audio.music = new ValleyMusic(player, music, audio.rng.fork('music'), o.musicFrequency);
       });
