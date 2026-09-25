@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd \"$CLAUDE_PROJECT_DIR\" && if [ -f package-lock.json ] && [ ! -d node_modules ]; then npm ci --no-audit --no-fund >/dev/null 2>&1 && echo 'npm dependencies installed'; fi; exit 0"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Wrenhollow Lullaby Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Nunito:wght@400;600;700&display=swap" />
+<style>
+  :root {
+    --paper: #f3ebdd;
+    --paper-2: #eadfcc;
+    --ink: #3a3230;
+    --ink-soft: #6f6560;
+    --line: #d6c9b3;
+    --accent: #b5322e;
+    --pine: #3e7361;
+    --amber: #e7a13d;
+    --track: #d9ccb6;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #0f1a38;
+      --paper-2: #16234a;
+      --ink: #f1e7d6;
+      --ink-soft: #b4ab9e;
+      --line: #2b3a66;
+      --accent: #e0704f;
+      --pine: #6fae96;
+      --amber: #f0b45a;
+      --track: #2b3a66;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #0f1a38;
+    --paper-2: #16234a;
+    --ink: #f1e7d6;
+    --ink-soft: #b4ab9e;
+    --line: #2b3a66;
+    --accent: #e0704f;
+    --pine: #6fae96;
+    --amber: #f0b45a;
+    --track: #2b3a66;
+    color-scheme: dark;
+  }
+  [hidden] { display: none !important; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font: 16px/1.5 "Nunito", "Segoe UI", system-ui, sans-serif;
+    padding-inline: 16px;
+    padding-block: 28px 48px;
+  }
+  main { max-width: 760px; margin: 0 auto; display: grid; gap: 22px; }
+  h1 { font-family: "Fraunces", Georgia, serif; font-weight: 700; font-size: clamp(28px, 5vw, 40px); line-height: 1.1; margin: 0; text-wrap: balance; }
+  .kicker { text-transform: uppercase; letter-spacing: 0.12em; font-size: 12px; font-weight: 700; color: var(--pine); margin: 0 0 6px; }
+  .intro { margin: 8px 0 0; color: var(--ink-soft); max-width: 62ch; }
+  .panel { background: var(--paper-2); border: 1px solid var(--line); border-radius: 14px; padding: 20px; display: grid; gap: 18px; }
+  .now { display: grid; gap: 10px; }
+  .now-row { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px; }
+  .section-name { font-family: "Fraunces", Georgia, serif; font-size: 24px; font-weight: 500; }
+  .time { font-variant-numeric: tabular-nums; color: var(--ink-soft); }
+  .form-strip { display: flex; gap: 4px; height: 10px; }
+  .form-strip span { flex: 1; background: var(--track); border-radius: 3px; position: relative; overflow: hidden; }
+  .form-strip span.done { background: var(--pine); }
+  .form-strip span i { position: absolute; inset: 0 auto 0 0; background: var(--amber); }
+  .transport { display: flex; flex-wrap: wrap; gap: 10px; }
+  button { font: inherit; font-weight: 700; border-radius: 10px; border: 1px solid var(--line); background: var(--paper); color: var(--ink); padding: 10px 16px; cursor: pointer; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff8ef; }
+  button:focus-visible, input:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
+  button:disabled { opacity: 0.5; cursor: wait; }
+  .moods { display: flex; flex-wrap: wrap; gap: 6px; }
+  .moods button[aria-pressed="true"] { background: var(--pine); border-color: var(--pine); color: #fff8ef; }
+  .label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 700; color: var(--ink-soft); }
+  .sliders { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px 22px; }
+  .slider { display: grid; gap: 4px; }
+  .slider div { display: flex; justify-content: space-between; font-size: 14px; }
+  .slider output { font-variant-numeric: tabular-nums; color: var(--ink-soft); }
+  input[type="range"] { width: 100%; accent-color: var(--accent); }
+  .row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+  input[type="number"] { font: inherit; width: 8ch; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--paper); color: var(--ink); font-variant-numeric: tabular-nums; }
+  .status { font-size: 14px; color: var(--ink-soft); min-height: 1.5em; }
+  .notes { color: var(--ink-soft); font-size: 14px; max-width: 62ch; }
+  .notes li + li { margin-top: 4px; }
+  pre#settings { white-space: pre-wrap; font-size: 13px; background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 10px; margin: 0; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <p class="kicker">Hearthwood · Review Lab #1</p>
+    <h1>Wrenhollow Lullaby</h1>
+    <p class="intro">The main theme, performed fresh by the game's music director every time. Listen, switch moods, and shape the mix. When it sounds right, copy your settings and send them to me, or tell me what to change.</p>
+  </header>
+
+  <section class="panel" aria-label="Player">
+    <div class="now">
+      <div class="now-row">
+        <span class="section-name" id="section">Ready</span>
+        <span class="time" id="time">0:00 / 0:00</span>
+      </div>
+      <div class="form-strip" id="form" aria-hidden="true"></div>
+      <div class="status" id="status" role="status">Tap Play to render the instruments and begin (takes a few seconds the first time).</div>
+    </div>
+    <div class="transport">
+      <button class="primary" id="play" type="button">Play</button>
+      <button id="variation" type="button" disabled>New variation</button>
+      <button id="stop" type="button" disabled>Stop</button>
+    </div>
+    <div class="row">
+      <span class="label">Mood</span>
+      <div class="moods" id="moods">
+        <button type="button" data-mood="clear" aria-pressed="true">Clear day</button>
+        <button type="button" data-mood="snow" aria-pressed="false">Snowfall</button>
+        <button type="button" data-mood="night" aria-pressed="false">Night</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" aria-label="Mix and feel">
+    <span class="label">Shape it</span>
+    <div class="sliders">
+      <label class="slider"><div><span>Tempo</span><output id="tempo-out"></output></div><input id="tempo" type="range" min="0.8" max="1.2" step="0.01" value="1" /></label>
+      <label class="slider"><div><span>Felt piano</span><output id="piano-out"></output></div><input id="piano" type="range" min="0" max="1.5" step="0.05" value="1" /></label>
+      <label class="slider"><div><span>Warm pad</span><output id="pad-out"></output></div><input id="pad" type="range" min="0" max="1.5" step="0.05" value="1" /></label>
+      <label class="slider"><div><span>Music box</span><output id="box-out"></output></div><input id="box" type="range" min="0" max="1.5" step="0.05" value="1" /></label>
+      <label class="slider"><div><span>Reverb</span><output id="reverb-out"></output></div><input id="reverb" type="range" min="0" max="1" step="0.05" value="0.35" /></label>
+      <label class="slider"><div><span>Volume</span><output id="volume-out"></output></div><input id="volume" type="range" min="0" max="1.5" step="0.05" value="1" /></label>
+    </div>
+    <div class="row">
+      <label class="row" for="rests"><input id="rests" type="checkbox" checked /> Quiet rest between performances (as in the game)</label>
+    </div>
+    <div class="row">
+      <label for="seed" class="label">Variation seed</label>
+      <input id="seed" type="number" min="1" step="1" value="1" />
+      <button id="replay" type="button" disabled>Play this seed</button>
+    </div>
+  </section>
+
+  <section class="panel" aria-label="Send feedback">
+    <span class="label">Your settings</span>
+    <pre id="settings"></pre>
+    <div class="row"><button id="copy" type="button">Copy settings</button><span class="status" id="copy-status"></span></div>
+    <ul class="notes">
+      <li>Moods: <strong>Clear day</strong> plays in the woodlot and town, <strong>Snowfall</strong> sits lower and softer, <strong>Night</strong> leans on the music box.</li>
+      <li>Every performance picks its own form (Intro, A, A′, B…), chord colours, accompaniment patterns and small melodic ornaments. If one seed sounds especially good or bad, tell me its number.</li>
+      <li>All sound is synthesized in your browser from code: no recordings.</li>
+    </ul>
+  </section>
+</main>
+<script type="module" src="../../src/labs/music/main.ts"></script>
+</body>
+</html>

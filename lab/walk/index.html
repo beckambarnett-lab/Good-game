@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Winter Walk Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Nunito:wght@400;600;700;800&display=swap" />
+<style>
+  /* One deliberate look, the same in either theme: the valley at noon with the game's paper UI. */
+  :root {
+    --paper: #f3ebdd;
+    --paper-2: #eadfcc;
+    --ink: #3a3230;
+    --ink-soft: #6f6560;
+    --line: #d6c9b3;
+    --accent: #b5322e;
+    --pine: #3e7361;
+    --amber: #e7a13d;
+    --night: #0b1330;
+    color-scheme: light;
+  }
+  [hidden] { display: none !important; }
+  html, body { height: 100%; }
+  body { margin: 0; background: var(--night); color: var(--ink); font: 15px/1.45 "Nunito", "Segoe UI", system-ui, sans-serif; overflow: hidden; }
+  #app { position: fixed; inset: 0; }
+  #app canvas { display: block; width: 100%; height: 100%; outline: none; }
+  /* The game's own overlay and hint, as it draws them. */
+  .overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.4rem; text-align: center; font-family: "Fraunces", Georgia, serif; color: var(--paper); pointer-events: none; z-index: 1; }
+  .overlay h1 { font-weight: 600; font-size: 3rem; letter-spacing: 0.04em; margin: 0; }
+  .overlay p { margin: 0; font-size: 1.1rem; }
+  .overlay .quiet { opacity: 0.75; }
+  .hint { position: absolute; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 1; padding: 6px 14px; border-radius: 14px; background: rgba(11, 19, 48, 0.5); color: var(--paper); font-size: 14px; pointer-events: none; white-space: nowrap; }
+
+  .top { position: fixed; top: calc(14px + env(safe-area-inset-top, 0px)); left: 16px; display: grid; gap: 8px; max-width: min(430px, calc(100% - 32px)); z-index: 2; }
+  .title { background: var(--paper); border: 2px solid var(--ink); border-radius: 12px; padding: 8px 14px; }
+  .title h1 { font-family: "Fraunces", Georgia, serif; font-size: 20px; margin: 0; line-height: 1.2; text-wrap: balance; }
+  .title p { margin: 2px 0 0; font-size: 13px; color: var(--ink-soft); }
+  .places { display: flex; flex-wrap: wrap; gap: 6px; }
+  button, select { font: inherit; font-weight: 700; border-radius: 10px; border: 2px solid var(--ink); background: var(--paper); color: var(--ink); padding: 6px 12px; cursor: pointer; }
+  button:hover { background: var(--paper-2); }
+  button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
+  .places button small { font-weight: 600; color: var(--ink-soft); }
+
+  .panel { position: fixed; top: calc(14px + env(safe-area-inset-top, 0px)); right: 16px; width: min(310px, calc(100% - 32px)); max-height: calc(100% - 120px); overflow-y: auto; background: var(--paper); border: 2px solid var(--ink); border-radius: 12px; padding: 12px 14px; display: grid; gap: 10px; z-index: 2; }
+  .panel > details > summary { font-family: "Fraunces", Georgia, serif; font-weight: 700; font-size: 17px; cursor: pointer; }
+  .group { display: grid; gap: 9px; margin-top: 8px; }
+  .group h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--pine); margin: 6px 0 0; }
+  .slider { display: grid; gap: 2px; font-size: 13px; }
+  .slider div { display: flex; justify-content: space-between; gap: 8px; }
+  .slider output { font-variant-numeric: tabular-nums; color: var(--ink-soft); white-space: nowrap; }
+  input[type="range"] { width: 100%; accent-color: var(--accent); }
+  .check { display: flex; gap: 8px; align-items: center; font-size: 13px; }
+  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 13px; }
+  select { padding: 4px 8px; font-weight: 600; }
+  pre { white-space: pre-wrap; font-size: 12px; background: var(--paper-2); border: 1px solid var(--line); border-radius: 8px; padding: 8px; margin: 0; }
+  .stats { font-size: 13px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+
+  .readout { justify-self: start; background: var(--paper); border: 2px solid var(--ink); border-radius: 12px; padding: 8px 12px; display: grid; gap: 2px; font-size: 13px; font-variant-numeric: tabular-nums; min-width: 210px; }
+  .readout strong { font-family: "Fraunces", Georgia, serif; font-size: 16px; }
+  .readout span { color: var(--ink-soft); }
+
+  .start { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(11, 19, 48, 0.55); z-index: 3; padding-inline: 16px; }
+  .start > div { background: var(--paper); border: 2px solid var(--ink); border-radius: 16px; padding: 22px 26px; max-width: 470px; display: grid; gap: 10px; text-align: center; }
+  .start h2 { font-family: "Fraunces", Georgia, serif; margin: 0; font-size: 26px; text-wrap: balance; }
+  .start p { margin: 0; color: var(--ink-soft); }
+  .start button { justify-self: center; background: var(--accent); color: #fff8ef; font-size: 17px; padding: 10px 22px; }
+  .start button:hover { background: #9c2a27; }
+  @media (max-width: 760px) {
+    .panel { top: auto; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); max-height: 42%; }
+    .hint { display: none; }
+  }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<div class="top">
+  <div class="title">
+    <h1>Winter walk</h1>
+    <p>Hearthwood · Review Lab #3 · walking, camera, footsteps and a piano phrase</p>
+  </div>
+  <nav class="places" id="places" aria-label="Go to"></nav>
+  <div class="readout" id="readout">
+    <strong id="surface">Waiting to start</strong>
+    <span id="pace">–</span>
+    <span id="music">–</span>
+  </div>
+</div>
+
+<aside class="panel" aria-label="Tuning">
+  <details open>
+    <summary>Tune it</summary>
+    <div class="group" id="walking"><h2>Walking</h2></div>
+    <div class="group" id="camera"><h2>Camera</h2></div>
+    <div class="group" id="sound"><h2>Sound</h2></div>
+    <div class="group">
+      <pre id="settings"></pre>
+      <div class="row">
+        <button type="button" id="copy">Copy settings</button>
+        <button type="button" id="reset">Reset</button>
+      </div>
+      <span class="stats" id="copy-status"></span>
+    </div>
+  </details>
+</aside>
+
+<div class="start" id="start">
+  <div>
+    <h2>Take a winter walk</h2>
+    <p>This is the real valley with the walking, camera and footstep code the game will use. Walk on fresh powder, the packed road and the lake ice and listen to how each one sounds. Now and then a short felt-piano phrase plays.</p>
+    <p>WASD to walk, Shift to jog, Space to hop. Click or drag to look around, and use the wheel to zoom. A gamepad works too.</p>
+    <p>Change anything in the panel while you walk, then copy your settings to me.</p>
+    <button type="button" id="begin">Start (turns sound on)</button>
+  </div>
+</div>
+<script type="module" src="../../src/labs/walk/main.ts"></script>
+</body>
+</html>

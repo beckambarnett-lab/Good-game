@@ -24,6 +24,7 @@
    4. Must-fixes block the next milestone.
 
 ## Hard rules
+- **Review gate:** feel-critical features (music, SFX, ambience, minigames, controls, camera, looks) are built as a standalone Lab first. They enter the game **only after the user says "approved"** (Plan Part 8.0). Everything else is verified with tests.
 - **Pillars:** tactile satisfaction, calm, a living town, gentle progression. Every feature is judged against them.
 - **Polish bar:** no feature is done without animation, particles, layered sound and a world response (Plan Part 9.1). The vertical slice (M1) must already feel finished.
 - **No paid, ripped or copyrighted assets.**
@@ -42,7 +43,16 @@
 - Node 22, Python 3.11 and `uv` are available.
 
 ## Commands
-None yet. M0 creates them: `npm run dev | build | check | test | content | econ | soak | shots | perf | audio | e2e | assets`. Keep this section updated as they land.
+- `npm run dev`: Vite dev server. `npm run build` / `npm run preview`: the production build.
+- `npm run check`: Biome lint, `tsc` typecheck and the sim/view boundary check. Run before every commit.
+- `npm test`: Vitest unit and sim tests. `npm run e2e`: Playwright against the built app.
+- `npm run audio [seeds…]`: offline renders of the soundtrack, every SFX variant and a footstep walk, with spectrograms and QA metrics → `artifacts/audio/`.
+- `npm run map`: the terrain relief map → `artifacts/terrain/map.png`. Look at it after any terrain change.
+- `npm run shots [S01 …] [--no-build]`: art QA shots (`src/data/shots.ts`) in headless Chromium → `artifacts/shots/` + render budgets. **Look at the PNGs.**
+- `npm run lab:build <name>` / `npm run lab:check`: build a Review Lab for publishing, and its headless checks.
+- `npm run soak [days]`: the sim headless for 30 in-game days (default) with a wandering bot: no NaNs or escapes, byte-stable saves, step cost, flat memory → `artifacts/soak/`.
+- The app accepts `?shot=S04` (frame a QA shot), `?selftest` (in-browser checks for e2e) and `?dev=1` (the dev overlay with budgets and cheats; F3 toggles it, also in dev builds).
+- Still to come: `content`, `econ`, `perf` and `assets` as their milestones land.
 
 ## Current status
-Planning complete. **Next: M0 — Foundations** (see `docs/progress.md`).
+M0 (Foundations) in progress. Labs #1 (soundtrack), #2 (felling) and #3 (winter walk) are in review. See `docs/progress.md`.

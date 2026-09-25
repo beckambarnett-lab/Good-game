@@ -1,0 +1,460 @@
+// All gameplay tunables live here (CLAUDE.md hard rule). Values marked "Lab" are set by the user
+// in a Review Lab before integration; the lab edits a live copy of these objects.
+
+export type TreeSize = 'small' | 'medium' | 'large' | 'oldOak';
+
+export interface FellingTuning {
+  /** Successful chops needed to fell any tree (user design: 3). */
+  chopsToFell: number;
+  /** Seconds for the marker to sweep from one end of the bar to the other, per tree size. */
+  sweepSeconds: Record<TreeSize, number>;
+  /** Green zone width as a fraction of the bar (0–1), before axe bonus. */
+  greenWidth: number;
+  /** Inner "perfect" band width (fraction of bar): extra sparkle and chime, no extra effect. */
+  perfectWidth: number;
+  /** Relaxed mode: marker speed multiplier while inside the green zone (accessibility). */
+  relaxedGreenSpeed: number;
+  /** Seconds the bar pauses after a chop while the swing animation plays. */
+  chopRecover: number;
+  /** Seconds after a miss before the next press counts (prevents mashing). */
+  missLockout: number;
+  /** Proposed axe-tier bonus to the green width (fraction of bar), to confirm in review. */
+  axeGreenBonus: readonly number[];
+}
+
+export const felling: FellingTuning = {
+  chopsToFell: 3,
+  sweepSeconds: { small: 0.8, medium: 1.2, large: 1.7, oldOak: 2.0 },
+  greenWidth: 0.22,
+  perfectWidth: 0.06,
+  relaxedGreenSpeed: 0.4,
+  chopRecover: 0.45,
+  missLockout: 0.35,
+  axeGreenBonus: [0, 0.03, 0.06, 0.09, 0.11],
+};
+
+export interface ClockTuning {
+  /** Real seconds per game hour during the day window and at night (Standard pace). */
+  dayHourSeconds: number;
+  nightHourSeconds: number;
+  /** Day window [start, end) in game hours; outside it the night rate applies. */
+  dayStartHour: number;
+  dayEndHour: number;
+  /** Pace multipliers for the Day length setting. */
+  pace: Record<'relaxed' | 'standard' | 'brisk', number>;
+  daysPerWinter: number;
+  /** Game starts on Day 1 (Monday) at this hour; the clock is frozen during Hal's intro. */
+  startHour: number;
+  /** Hour of the daily rollover: orders, seasoning, autosave, the day card (Plan Part 2.1). */
+  rolloverHour: number;
+}
+
+export const clock: ClockTuning = {
+  dayHourSeconds: 90,
+  nightHourSeconds: 45,
+  dayStartHour: 6,
+  dayEndHour: 22,
+  pace: { relaxed: 1.33, standard: 1, brisk: 0.67 },
+  daysPerWinter: 56,
+  startHour: 15,
+  rolloverHour: 6,
+};
+
+export interface SimTuning {
+  /** Fixed simulation rate (Hz); the sim never reads frame time (Plan Part 7.3). */
+  stepHz: number;
+  /** Catch-up cap per rendered frame; backlog beyond it is dropped. */
+  maxStepsPerFrame: number;
+}
+
+export const sim: SimTuning = {
+  stepHz: 60,
+  maxStepsPerFrame: 5,
+};
+
+export interface AppTuning {
+  /** Longest frame (s) render-side animation may see after a stall, so nothing leaps. */
+  maxRenderDeltaSeconds: number;
+  /** Music and ambience level while the tab is hidden with "Background audio" on (Plan Part 2.11). */
+  backgroundAudioDuckDb: number;
+}
+
+export const app: AppTuning = {
+  maxRenderDeltaSeconds: 0.1,
+  backgroundAudioDuckDb: -6,
+};
+
+export interface TerrainViewTuning {
+  /** Chunk edge (m); the world is divided into square chunks, each with every LOD. */
+  chunkSize: number;
+  /** Heightfield sample stride per LOD (1 = every metre). */
+  lodStrides: readonly number[];
+  /** Distance (m) from the camera beyond which each LOD gives way to the next coarser one. */
+  lodDistances: readonly number[];
+  /** Extra distance (m) before switching back, so chunks don't flicker at a threshold. */
+  lodHysteresis: number;
+  /** Skirt depth (m) beyond the widest gap between any two LODs along a chunk's edges. */
+  skirtMargin: number;
+  /** LOD reselection rate (Hz); Plan Part 7.4 throttles culling updates to 10 Hz. */
+  updateHz: number;
+  /** Snow colour: how deep a hollow (m below its neighbours' mean, at 2 m) turns fully shadow-blue. */
+  hollowDepth: number;
+  hollowTint: number;
+  /** Slopes (degrees) that fade toward deep-shadow blue; rock outcrops come later (Plan Part 5.5). */
+  steepFrom: number;
+  steepTo: number;
+  steepTint: number;
+  /** How far roads and rail shift from lit snow toward packed snow / ballast (subtle: they're under snow). */
+  roadTint: number;
+  railTint: number;
+}
+
+export const terrainView: TerrainViewTuning = {
+  chunkSize: 32,
+  lodStrides: [1, 2, 4, 8],
+  lodDistances: [64, 128, 256],
+  lodHysteresis: 8,
+  skirtMargin: 0.5,
+  updateHz: 10,
+  hollowDepth: 0.5,
+  hollowTint: 0.55,
+  steepFrom: 32,
+  steepTo: 48,
+  steepTint: 0.5,
+  roadTint: 0.5,
+  railTint: 0.7,
+};
+
+export interface MovementTuning {
+  /** Speeds (m/s; Plan Part 2.3). */
+  walkSpeed: number;
+  jogSpeed: number;
+  /** Seconds to reach walking speed from rest, and to stop from it. */
+  accelTime: number;
+  stopTime: number;
+  /** Fastest turn toward the heading (degrees per second). */
+  turnRate: number;
+  /** Kinematic capsule (m) and the steepest walkable ground (degrees). */
+  capsuleRadius: number;
+  capsuleHeight: number;
+  maxSlope: number;
+  /** The hop, purely for fun (m), and gravity (m/s²). */
+  hopHeight: number;
+  gravity: number;
+  /** Ice: top-speed and acceleration multipliers (a gentle slide without crampons). */
+  iceSpeed: number;
+  iceGrip: number;
+  /** Keep this far inside the world's edge (m). */
+  worldMargin: number;
+}
+
+export const movement: MovementTuning = {
+  walkSpeed: 3.4,
+  jogSpeed: 5.2,
+  accelTime: 0.18,
+  stopTime: 0.12,
+  turnRate: 600,
+  capsuleRadius: 0.35,
+  capsuleHeight: 1.7,
+  maxSlope: 38,
+  hopHeight: 0.45,
+  gravity: 9.81,
+  iceSpeed: 0.97,
+  iceGrip: 0.35,
+  worldMargin: 6,
+};
+
+export interface CameraRigTuning {
+  /** Orbit distance (m): default, and the wheel-zoom range. */
+  distance: number;
+  minDistance: number;
+  maxDistance: number;
+  /** Pitch limits (degrees; positive looks down on the player). */
+  minPitch: number;
+  maxPitch: number;
+  startPitch: number;
+  /** The orbit target sits this far below the head. */
+  targetDrop: number;
+  /** Spring rates (ω): following the player, zooming, and collision pull-in / release. */
+  followOmega: number;
+  zoomOmega: number;
+  pullInOmega: number;
+  releaseOmega: number;
+  /** Camera clearance above the ground and the collision probe radius (m). */
+  groundClearance: number;
+  probeRadius: number;
+  /** Lazy recenter: seconds without look input while moving, then degrees per second. */
+  recenterDelay: number;
+  recenterRate: number;
+  /** Look speed: radians per pixel of mouse at sensitivity 1, and per second of full stick. */
+  mouseRadiansPerPixel: number;
+  stickRadiansPerSecond: number;
+  /** Wheel zoom step (m per notch). */
+  zoomStep: number;
+}
+
+export const cameraRig: CameraRigTuning = {
+  distance: 6.5,
+  minDistance: 3.5,
+  maxDistance: 12,
+  minPitch: -10,
+  maxPitch: 60,
+  startPitch: 16,
+  targetDrop: 0.3,
+  followOmega: 8,
+  zoomOmega: 6,
+  pullInOmega: 20,
+  releaseOmega: 4,
+  groundClearance: 0.35,
+  probeRadius: 0.25,
+  recenterDelay: 2,
+  recenterRate: 60,
+  mouseRadiansPerPixel: 0.0025,
+  stickRadiansPerSecond: 2.6,
+  zoomStep: 0.8,
+};
+
+/** The placeholder walker's gait (the Blender character's clips replace the swing in M1). */
+export interface GaitTuning {
+  /** Metres per step at a walk and at a jog; with speed, these set the footstep cadence. */
+  walkStep: number;
+  jogStep: number;
+  /** Leg swing (rad) at a walk and at a jog, body bob (m) and forward lean at a jog (rad). */
+  walkSwing: number;
+  jogSwing: number;
+  bob: number;
+  jogLean: number;
+  /** Slower than this (m/s), feet don't sound (turning on the spot, settling). */
+  minStepSpeed: number;
+}
+
+export const gait: GaitTuning = {
+  walkStep: 1.4,
+  jogStep: 1.8,
+  walkSwing: 0.62,
+  jogSwing: 0.85,
+  bob: 0.035,
+  jogLean: 0.12,
+  minStepSpeed: 0.3,
+};
+
+/** Footsteps (Plan Part 6.8): level, variation and layers. */
+export interface FootstepTuning {
+  /** Step level (linear) at walking pace; slower steps fall toward `creepLevel` of it. */
+  level: number;
+  creepLevel: number;
+  /** Variation per step: pitch ±5 %, gain ±1.5 dB, left/right foot pan ±0.05. */
+  pitchJitter: number;
+  gainJitterDb: number;
+  footPan: number;
+  /** Jog steps are louder and brighter (+2 dB, +600 Hz tilt): a gain and a high shelf. */
+  jogGainDb: number;
+  jogShelfHz: number;
+  jogShelfDb: number;
+  /** Clothing rustle on every step, relative to the step (−12 dB). */
+  rustleDb: number;
+  /** Packed snow squeaks at or below this air temperature (°C); the squeak's level (dB). */
+  squeakBelowC: number;
+  squeakDb: number;
+  /** Landing from a hop: extra level (dB); the second foot follows after this many seconds. */
+  landGainDb: number;
+  landSecondFoot: number;
+}
+
+export const footsteps: FootstepTuning = {
+  level: 1,
+  creepLevel: 0.45,
+  pitchJitter: 0.05,
+  gainJitterDb: 1.5,
+  footPan: 0.05,
+  jogGainDb: 0.7,
+  jogShelfHz: 2500,
+  jogShelfDb: 5,
+  rustleDb: -12,
+  squeakBelowC: -15,
+  squeakDb: -4,
+  landGainDb: 3,
+  landSecondFoot: 0.045,
+};
+
+/** Sound Foundry: the seed the instrument banks render from, so every page plays the same piano. */
+export const foundry = { bankSeed: 20260924 };
+
+/** Bus reference levels (dB) at default settings (Plan Part 6.10; world SFX = 0 dB). */
+export const mixLevels = { sfx: 0, music: -8, ambience: -12, voice: -18, ui: -14 } as const;
+
+/**
+ * The valley's M0 music: now and then one 4-bar felt-piano phrase of the main theme, with rests
+ * between by the Music frequency setting (Plan Part 6.3). The full Director replaces it in M1.
+ */
+export interface ValleyMusicTuning {
+  /** Seconds after arriving before the first phrase. */
+  firstAfter: number;
+  /** Rest ranges (s) per Music frequency setting. */
+  rests: Readonly<Record<'often' | 'sometimes' | 'rarely', readonly [number, number]>>;
+  /** Which phrases may play: the answering phrases, which end home. */
+  phrases: readonly { section: 'A' | 'B'; index: number }[];
+  /** Fade-in of each phrase (s). */
+  fadeIn: number;
+}
+
+export const valleyMusic: ValleyMusicTuning = {
+  firstAfter: 8,
+  rests: { often: [20, 60], sometimes: [45, 150], rarely: [120, 300] },
+  phrases: [
+    { section: 'A', index: 1 },
+    { section: 'B', index: 1 },
+  ],
+  fadeIn: 0.05,
+};
+
+export interface ForestViewTuning {
+  /** Distance (m) where LOD0 gives way to LOD1, and LOD1 to LOD2 (Plan Part 5.5: 40 / 120). */
+  lodDistances: readonly [number, number];
+  /** Extra distance (m) before a tree switches back, so trees don't flicker at a threshold. */
+  lodHysteresis: number;
+  /** Stumps are small: drawn only within this distance (m). */
+  stumpDistance: number;
+  /** Culling and LOD rate (Hz; Plan Part 7.4). */
+  updateHz: number;
+  /** Distinct LOD0 models per species, so near trees don't repeat. */
+  lod0Variants: number;
+  saplingHeight: number;
+  /** Per-tree brightness variation (±). */
+  tintAmount: number;
+  /** Wind sway: metres at the top of a reference-height tree, and angular speed (rad/s). */
+  swayAmplitude: number;
+  swaySpeed: number;
+}
+
+export const forestView: ForestViewTuning = {
+  lodDistances: [40, 120],
+  lodHysteresis: 4,
+  stumpDistance: 60,
+  updateHz: 10,
+  lod0Variants: 3,
+  saplingHeight: 1.3,
+  tintAmount: 0.08,
+  swayAmplitude: 0.18,
+  swaySpeed: 0.9,
+};
+
+export interface ValleyViewTuning {
+  /** Exponential fog density: light enough that the town reads from the cabin (170 m). */
+  fogDensity: number;
+  /** Camera far plane (m); the whole 512 m valley plus the backdrop. */
+  far: number;
+  /** Light scale so lit snow reads white (until Environment key frames calibrate each hour, M1). */
+  exposure: number;
+  /** Where the walker starts: the cabin pad, facing the valley (yaw rad; facing (sin, cos)). */
+  spawnX: number;
+  spawnZ: number;
+  spawnYaw: number;
+  /** World seed of the test scene, until New Game (M1) chooses one per save. */
+  seed: number;
+  /** Air temperature (°C) until Weather (M1.7) drives it. */
+  airTemperature: number;
+}
+
+export const valleyView: ValleyViewTuning = {
+  fogDensity: 0.0025,
+  far: 1200,
+  exposure: 1.6,
+  spawnX: -166,
+  spawnZ: -22,
+  spawnYaw: Math.PI / 2,
+  seed: 1847261,
+  airTemperature: -6,
+};
+
+/**
+ * Dynamic resolution (Plan Part 5.10): with a GPU timer, step the render scale down when frames
+ * average over 15.5 ms for a second and back up after 3 s under 13 ms. Without one, the frame
+ * interval against the frame-rate target stands in, and a step up that is quickly undone makes
+ * the next recovery wait twice as long, so the scale doesn't hunt.
+ */
+export interface DynamicResolutionTuning {
+  dropAboveMs: number;
+  recoverBelowMs: number;
+  /** Averaging window and the calm needed before stepping back up (s). */
+  windowSeconds: number;
+  recoverAfter: number;
+  /** Longest recovery wait after repeated retreats (s). */
+  maxRecoverAfter: number;
+  /** A step down within this many seconds of a step up counts as a retreat. */
+  retreatWindow: number;
+  step: number;
+  /** Frame-interval fallback: drop and recover thresholds as multiples of the target interval. */
+  intervalDropRatio: number;
+  intervalRecoverRatio: number;
+  /** Ignore this long after loading or a quality change (shader compiles, streaming). */
+  settleSeconds: number;
+}
+
+export const dynamicResolution: DynamicResolutionTuning = {
+  dropAboveMs: 15.5,
+  recoverBelowMs: 13,
+  windowSeconds: 1,
+  recoverAfter: 3,
+  maxRecoverAfter: 48,
+  retreatWindow: 4,
+  step: 0.05,
+  intervalDropRatio: 1.06,
+  intervalRecoverRatio: 1.01,
+  settleSeconds: 2,
+};
+
+/** Post-processing (Plan Part 5.10), until the Grade and time-of-day key frames drive it (M1). */
+export interface PostFxTuning {
+  bloom: { intensity: number; threshold: number; smoothing: number };
+  /** Low preset: fewer blur levels at a lower resolution. */
+  cheapBloom: { levels: number; resolutionScale: number };
+  vignette: { darkness: number; offset: number };
+}
+
+export const postFx: PostFxTuning = {
+  bloom: { intensity: 0.45, threshold: 0.9, smoothing: 0.2 },
+  cheapBloom: { levels: 4, resolutionScale: 0.35 },
+  vignette: { darkness: 0.28, offset: 0.35 },
+};
+
+/** Frame and memory budgets (Plan Part 7.8, Medium, 1080p), shown by the dev overlay. */
+export const frameBudget = {
+  frameMs: 16.6,
+  /** The worst frame of the last couple of seconds stands in for p99. */
+  worstFrameMs: 20,
+  simStepMs: 2.5,
+  renderCpuMs: 4,
+  heapMB: 350,
+  gpuTargetsMB: 160,
+  audioPcmMB: 64,
+} as const;
+
+/** Render budgets for the Medium preset (Plan Part 7.8), checked by `npm run shots`. */
+export interface RenderBudget {
+  mainCalls: number;
+  mainTriangles: number;
+  shadowCalls: number;
+  shadowTriangles: number;
+}
+
+export const renderBudget: RenderBudget = {
+  mainCalls: 250,
+  mainTriangles: 1_200_000,
+  shadowCalls: 120,
+  shadowTriangles: 600_000,
+};
+
+export interface SaveTuning {
+  /** Autosave cadence in real seconds of play (Plan Part 2.11). */
+  autosaveEveryRealSeconds: number;
+  /** Debounce after a purchase or completed order before autosaving. */
+  eventAutosaveDebounceSeconds: number;
+  manualSlots: number;
+}
+
+export const save: SaveTuning = {
+  autosaveEveryRealSeconds: 300,
+  eventAutosaveDebounceSeconds: 30,
+  manualSlots: 3,
+};
