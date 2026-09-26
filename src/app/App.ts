@@ -14,6 +14,7 @@ import {
   footsteps as footstepTuning,
   type GaitTuning,
   gait as gaitTuning,
+  type LookTuning,
   type MovementTuning,
   movement as movementTuning,
   cameraRig as rigTuning,
@@ -47,6 +48,8 @@ import { Visibility } from './Visibility.ts';
 
 /** Frames rendered at a shot's viewpoint before it is measured and declared ready. */
 const SHOT_SETTLE_FRAMES = 4;
+/** Shots draw on a fixed timestep so sway, grain and every animation match run to run (Plan 7.9). */
+const SHOT_FRAME_SECONDS = 1 / 60;
 const NO_LOOK = { look: { x: 0, y: 0 }, zoom: 0, looking: false };
 
 export interface ShotStatus {
@@ -89,6 +92,8 @@ export interface AppOptions {
   airTemperature?: () => number;
   /** The dev overlay and cheats (dev builds, `?dev=1`): shown at once, or hidden until F3. */
   devTools?: 'visible' | 'hidden';
+  /** The look to draw, read live (the Valley Look lab, `?look=proposed`); the game's by default. */
+  look?: LookTuning;
 }
 
 /** Weight of the newest sample in the smoothed dev timings. */
@@ -187,6 +192,7 @@ export class App {
       exposure: valleyView.exposure,
     });
     this.stage = stage;
+    if (this.options.look) stage.setLook(this.options.look);
     stage.camera.fov = this.settings.get('graphics', 'fov');
     stage.camera.updateProjectionMatrix();
     const valley = new ValleyScene(stage, terrain, sites);
@@ -472,8 +478,9 @@ export class App {
     };
   }
 
-  private render(alpha: number, dt: number): void {
+  private render(alpha: number, frameSeconds: number): void {
     if (!this.stage || !this.valley) return;
+    const dt = this.shot ? SHOT_FRAME_SECONDS : frameSeconds;
     const t0 = performance.now();
     const cam = this.stage.camera;
     if (this.player && this.rig && this.avatar) {

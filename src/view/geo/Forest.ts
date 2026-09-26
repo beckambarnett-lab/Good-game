@@ -21,6 +21,7 @@ import { Rng } from '../../core/rng.ts';
 import type { ForestViewTuning } from '../../data/tuning.ts';
 import { type TreeSpecies, wrenhollowForests } from '../../data/world/forests.ts';
 import type { TreeSite } from '../../sim/world/Sites.ts';
+import { applyHearth } from '../render/materials/hearth.ts';
 import { shared } from '../render/sharedUniforms.ts';
 import type { Part } from './Joinery.ts';
 import { birch, birchLod, pine, pineLod, stumpPart } from './trees.ts';
@@ -96,6 +97,7 @@ export class Forest {
       )}`;
     };
     material.customProgramCacheKey = () => 'forest-sway';
+    applyHearth(material, { surface: 'objects', heightGradient: true, dither: false });
 
     const count = (predicate: (s: TreeSite) => boolean) => sites.filter(predicate).length;
     const rng = new Rng(seed).fork('forest-models');

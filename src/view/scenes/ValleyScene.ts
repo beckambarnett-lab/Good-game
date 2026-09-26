@@ -8,6 +8,7 @@ import type { TreeSite } from '../../sim/world/Sites.ts';
 import type { GeneratedTerrain } from '../../sim/world/TerrainGen.ts';
 import { Forest } from '../geo/Forest.ts';
 import { TerrainMesh } from '../geo/terrain/TerrainMesh.ts';
+import { applyHearth } from '../render/materials/hearth.ts';
 import type { Stage } from '../render/Stage.ts';
 
 export class ValleyScene {
@@ -19,6 +20,8 @@ export class ValleyScene {
     this.world = world;
     // Smooth-shaded: snow reads soft, and objects on it keep the flat facets (see TerrainMesh).
     const material = new MeshLambertMaterial({ vertexColors: true });
+    // The ground is snow's own wrap, and doesn't darken toward itself.
+    applyHearth(material, { surface: 'snow', heightGradient: false, dither: false });
     this.terrain = new TerrainMesh(world.heightfield, world.surface, material, terrainView);
     stage.scene.add(this.terrain.mesh);
     this.forest = new Forest(sites, forestView, wrenhollowTerrain.seed);

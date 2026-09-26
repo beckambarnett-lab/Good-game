@@ -22,6 +22,14 @@ export const shots: readonly ShotDef[] = [
     weather: 'clear',
   },
   {
+    id: 'S02',
+    title: 'Woodlot',
+    eye: [-205, -48, 2.5],
+    target: [-250, -80, 1.5],
+    time: '12:00',
+    weather: 'lightSnow',
+  },
+  {
     id: 'S04',
     title: 'Main Street from the Cabin Road bend',
     eye: [-127, 5, 1.7],

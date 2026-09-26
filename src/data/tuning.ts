@@ -404,6 +404,98 @@ export const dynamicResolution: DynamicResolutionTuning = {
   settleSeconds: 2,
 };
 
+/**
+ * The look (Plan Parts 5.9 and 5.10): HearthMaterial's lighting and fog, and the Grade. `look` is
+ * what the game draws: neutral values that reproduce the M0 look exactly. `proposedLook` is the
+ * plan's look, in review in the Valley Look lab; approved values replace `look` (review gate).
+ */
+export interface LookTuning {
+  /** Key and fill trims: the sun's and the sky light's strength (1 = the rig as lit). */
+  sunStrength: number;
+  skyStrength: number;
+  /** Wrap diffuse: light reaches this far past the terminator (objects, snow). */
+  wrapObjects: number;
+  wrapSnow: number;
+  /** Shadowed ambient light is multiplied toward this linear RGB hue (luminance ≈ 1). */
+  shadowTint: readonly [number, number, number];
+  shadowTintStrength: number;
+  /** Objects darken by this fraction at their base, fading out over `heightRange` metres. */
+  heightDarken: number;
+  heightRange: number;
+  /** Fog by distance through the air (1) or view depth (0), and thicker low in the valley. */
+  fogRadial: number;
+  fogBase: number;
+  fogFalloff: number;
+  fogHeightMix: number;
+  /** Grade: white balance multiplier (linear RGB), lift/gamma/gain, saturation, contrast. */
+  balance: readonly [number, number, number];
+  lift: readonly [number, number, number];
+  gamma: readonly [number, number, number];
+  gain: readonly [number, number, number];
+  saturation: number;
+  contrast: number;
+  /** Split toning: shadow and highlight tones (0.5 grey = none), where they meet, and how much. */
+  shadowTone: readonly [number, number, number];
+  highlightTone: readonly [number, number, number];
+  splitBalance: number;
+  splitAmount: number;
+  /** Film grain amplitude (Plan: 0.02, animated; hides sky banding). */
+  grain: number;
+}
+
+export const look: LookTuning = {
+  sunStrength: 1,
+  skyStrength: 1,
+  wrapObjects: 0,
+  wrapSnow: 0,
+  shadowTint: [1, 1, 1],
+  shadowTintStrength: 0,
+  heightDarken: 0,
+  heightRange: 1,
+  fogRadial: 0,
+  fogBase: 0,
+  fogFalloff: 60,
+  fogHeightMix: 0,
+  balance: [1, 1, 1],
+  lift: [0, 0, 0],
+  gamma: [1, 1, 1],
+  gain: [1, 1, 1],
+  saturation: 1,
+  contrast: 1,
+  shadowTone: [0.5, 0.5, 0.5],
+  highlightTone: [0.5, 0.5, 0.5],
+  splitBalance: 0,
+  splitAmount: 0,
+  grain: 0,
+};
+
+/** The plan's noon look (Part 5.2 key frames: noon contrast +0.05; snow shadow #B9CBE3). */
+export const proposedLook: LookTuning = {
+  sunStrength: 1.15,
+  skyStrength: 1,
+  wrapObjects: 0.25,
+  wrapSnow: 0.2,
+  shadowTint: [0.85, 1.02, 1.26],
+  shadowTintStrength: 0.6,
+  heightDarken: 0.08,
+  heightRange: 1,
+  fogRadial: 1,
+  fogBase: 0,
+  fogFalloff: 45,
+  fogHeightMix: 0.5,
+  balance: [1, 1, 1],
+  lift: [0.005, 0.01, 0.025],
+  gamma: [1, 1, 1],
+  gain: [1, 1, 1],
+  saturation: 1.02,
+  contrast: 1.05,
+  shadowTone: [0.46, 0.49, 0.56],
+  highlightTone: [0.54, 0.52, 0.48],
+  splitBalance: 0,
+  splitAmount: 0.25,
+  grain: 0.02,
+};
+
 /** Post-processing (Plan Part 5.10), until the Grade and time-of-day key frames drive it (M1). */
 export interface PostFxTuning {
   bloom: { intensity: number; threshold: number; smoothing: number };

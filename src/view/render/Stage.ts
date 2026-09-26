@@ -1,7 +1,8 @@
 // Stage: renderer, scene, camera, winter lighting, fog and the post-processing chain
-// (bloom → neutral tone mapping → vignette, SMAA on Low), with resize handling and a frame loop.
-// Quality presets set the anti-aliasing, shadows, bloom and render scale; dynamic resolution keeps
-// the frame rate by stepping the render scale (Plan Part 5.10).
+// (bloom → neutral tone mapping → grade and grain → vignette, SMAA on Low), with resize handling
+// and a frame loop. Quality presets set the anti-aliasing, shadows, bloom and render scale;
+// dynamic resolution keeps the frame rate by stepping the render scale (Plan Part 5.10). The look
+// (light trims, HearthMaterial and the Grade) is read live every frame.
 
 import {
   BloomEffect,
@@ -30,9 +31,11 @@ import {
   WebGLRenderer,
 } from 'three';
 import type { ShadowSpec } from '../../data/quality.ts';
-import { dynamicResolution, postFx } from '../../data/tuning.ts';
+import { dynamicResolution, look as gameLook, type LookTuning, postFx } from '../../data/tuning.ts';
 import { DynamicResolution } from './DynamicResolution.ts';
+import { GradeEffect } from './effects/GradeEffect.ts';
 import { GpuTimer } from './GpuTimer.ts';
+import { syncHearthUniforms } from './materials/hearth.ts';
 import { palette } from './palette.ts';
 import { defaultQuality, pixelRatioFor, type ResolvedQuality } from './Quality.ts';
 import { Sky } from './Sky.ts';
@@ -71,6 +74,13 @@ export class Stage {
   readonly sky: Sky;
   private readonly composer: EffectComposer;
   private effectPasses: EffectPass[] = [];
+  /** Rebuilt with the post chain; its uniforms are synced from the look every frame. */
+  private grade = new GradeEffect();
+  /** The look being drawn, read every frame so a live-tuned object applies at once. */
+  private look: LookTuning = gameLook;
+  /** The lights' strength before the look's key and fill trims. */
+  private readonly sunBase: number;
+  private readonly skyBase: number;
   private quality: ResolvedQuality;
   private readonly dynres: DynamicResolution;
   private readonly gpuTimer: GpuTimer;
@@ -132,9 +142,11 @@ export class Stage {
 
     // Low winter sun, warm; blue-white sky fill; snow bounce from below.
     const exposure = options.exposure ?? 1;
-    this.hemi = new HemisphereLight(0xbcd3f0, 0xf1f4f8, 1.35 * exposure);
+    this.skyBase = 1.35 * exposure;
+    this.sunBase = 2.4 * exposure;
+    this.hemi = new HemisphereLight(0xbcd3f0, 0xf1f4f8, this.skyBase);
     this.scene.add(this.hemi);
-    this.sun = new DirectionalLight(palette.sun, 2.4 * exposure);
+    this.sun = new DirectionalLight(palette.sun, this.sunBase);
     this.sun.position.copy(this.sunOffset);
     this.sun.castShadow = true;
     // Map size and box width come from the quality level (applyShadows).
@@ -157,6 +169,11 @@ export class Stage {
 
     window.addEventListener('resize', () => this.resize());
     this.resize();
+  }
+
+  /** Draws with this look (HearthMaterial and the Grade); the Valley Look lab passes a live copy. */
+  setLook(look: LookTuning): void {
+    this.look = look;
   }
 
   /** The render scale dynamic resolution has settled on (1 = the preset's full resolution). */
@@ -199,6 +216,7 @@ export class Stage {
       this.composer.removePass(pass);
       pass.dispose();
     }
+    this.grade = new GradeEffect();
     const effects = [];
     if (q.bloom !== 'off') {
       const cheap = q.bloom === 'cheap' ? postFx.cheapBloom : null;
@@ -214,6 +232,7 @@ export class Stage {
     }
     effects.push(
       new ToneMappingEffect({ mode: ToneMappingMode.NEUTRAL }),
+      this.grade,
       new VignetteEffect({ darkness: postFx.vignette.darkness, offset: postFx.vignette.offset }),
     );
     this.effectPasses = [new EffectPass(this.camera, ...effects)];
@@ -298,6 +317,15 @@ export class Stage {
     if (changed) this.resize();
   }
 
+  /** Applies the look: light trims, HearthMaterial's shared uniforms and the Grade. */
+  private syncLook(): void {
+    const look = this.look;
+    this.sun.intensity = this.sunBase * look.sunStrength;
+    this.hemi.intensity = this.skyBase * look.skyStrength;
+    syncHearthUniforms(look);
+    this.grade.sync(look);
+  }
+
   onFrame(fn: (dt: number, t: number) => void): void {
     this.updaters.push(fn);
   }
@@ -306,6 +334,7 @@ export class Stage {
   renderFrame(dt: number): void {
     this.elapsed += dt;
     shared.uTime.value = this.elapsed;
+    this.syncLook();
     for (const u of this.updaters) u(dt, this.elapsed);
     this.sky.position.copy(this.camera.position);
     const gpuMs = this.gpuTimer.poll();

@@ -20,6 +20,9 @@ const SHOT_TIMEOUT_MS = 180_000;
 
 const args = process.argv.slice(2);
 if (!args.includes('--no-build')) execSync('npx vite build', { cwd: root, stdio: 'inherit' });
+// `--look=proposed` draws the look in review (Valley Look lab) into artifacts/shots/look-proposed/.
+const lookArg = args.find((a) => a.startsWith('--look='))?.slice('--look='.length);
+const shotDir = lookArg ? join(outDir, `look-${lookArg}`) : outDir;
 const wanted = args.filter((a) => !a.startsWith('--'));
 const list = wanted.length > 0 ? shots.filter((s) => wanted.includes(s.id)) : shots;
 if (list.length === 0) throw new Error(`No shots match ${wanted.join(', ')}`);
@@ -50,7 +53,7 @@ const browser = await chromium.launch({
   args: chromiumArgs,
   ...(existsSync(local) ? { executablePath: local } : {}),
 });
-mkdirSync(outDir, { recursive: true });
+mkdirSync(shotDir, { recursive: true });
 
 interface Passes {
   mainCalls: number;
@@ -77,7 +80,7 @@ for (const shot of list) {
   });
   page.on('pageerror', (e) => problems.push(`page error: ${e.message}`));
   const t0 = performance.now();
-  await page.goto(`http://localhost:${PORT}/index.html?shot=${shot.id}`);
+  await page.goto(`http://localhost:${PORT}/index.html?shot=${shot.id}${lookArg ? `&look=${lookArg}` : ''}`);
   let passes: Passes | undefined;
   try {
     const status = await page.waitForFunction(
@@ -96,7 +99,7 @@ for (const shot of list) {
   } catch (e) {
     problems.push(`timed out waiting for the shot: ${(e as Error).message.split('\n')[0]}`);
   }
-  await page.screenshot({ path: join(outDir, `${shot.id}.png`) });
+  await page.screenshot({ path: join(shotDir, `${shot.id}.png`) });
   if (passes) {
     const b = renderBudget;
     if (passes.mainCalls > b.mainCalls) problems.push(`main draws ${passes.mainCalls} > ${b.mainCalls}`);
@@ -123,7 +126,7 @@ for (const shot of list) {
 await browser.close();
 server.close();
 writeFileSync(
-  join(outDir, 'report.json'),
+  join(shotDir, 'report.json'),
   `${JSON.stringify({ budget: renderBudget, shots: rows }, null, 2)}\n`,
 );
 for (const r of rows) {
@@ -134,5 +137,5 @@ for (const r of rows) {
   console.log(`${r.ok ? 'ok  ' : 'FAIL'} ${r.id} ${r.title} (${r.seconds.toFixed(1)} s): ${stats}`);
   for (const problem of r.problems) console.log(`       ${problem}`);
 }
-console.log(`Shots in ${outDir}`);
+console.log(`Shots in ${shotDir}`);
 if (rows.some((r) => !r.ok)) process.exit(1);

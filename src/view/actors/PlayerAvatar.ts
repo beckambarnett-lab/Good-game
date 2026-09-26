@@ -6,6 +6,7 @@ import { Group, Mesh, MeshLambertMaterial } from 'three';
 import { Rng } from '../../core/rng.ts';
 import type { GaitTuning, MovementTuning } from '../../data/tuning.ts';
 import { blob, box, cylinder, merge } from '../geo/Joinery.ts';
+import { applyHearth } from '../render/materials/hearth.ts';
 import { palette } from '../render/palette.ts';
 
 /** Standing still, the legs ease back together at this rate per frame. */
@@ -23,6 +24,8 @@ export class PlayerAvatar {
   private readonly gait: GaitTuning;
   private readonly move: MovementTuning;
   onFootfall: ((side: 0 | 1) => void) | null = null;
+  /** Dither fade of the whole figure (0 = solid, 1 = gone). */
+  readonly fade: { value: number };
 
   /** Both tunings are read every frame, so live-tuned objects take effect at once. */
   constructor(seed: number, gait: GaitTuning, move: MovementTuning) {
@@ -30,6 +33,8 @@ export class PlayerAvatar {
     this.move = move;
     const rng = new Rng(seed).fork('avatar');
     const mat = new MeshLambertMaterial({ vertexColors: true });
+    // Dither-ready for when the camera pushes close (cutaway and occluder fades, M1).
+    this.fade = applyHearth(mat, { surface: 'objects', heightGradient: true, dither: true }).fade;
     const mesh = (geo: ReturnType<ReturnType<typeof merge>['toGeometry']>) => {
       const m = new Mesh(geo, mat);
       m.castShadow = true;
