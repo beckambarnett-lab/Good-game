@@ -29,7 +29,7 @@ async function warmthNearWalker(page: import('@playwright/test').Page) {
 }
 
 test('?dev=1 shows the budgets, and the cheats skip time and teleport', async ({ page }) => {
-  test.setTimeout(180_000);
+  test.setTimeout(300_000); // CI renders in software, several times slower than a desktop
   const errors: string[] = [];
   page.on('console', (m) => {
     if (m.type() === 'error' && !/favicon\.ico/.test(m.location().url)) errors.push(m.text());
