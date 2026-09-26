@@ -74,13 +74,16 @@ export class Stage {
   readonly sky: Sky;
   private readonly composer: EffectComposer;
   private effectPasses: EffectPass[] = [];
-  /** Rebuilt with the post chain; its uniforms are synced from the look every frame. */
+  /** Rebuilt with the post chain; synced from the look every frame. */
   private grade = new GradeEffect();
+  private vignette = new VignetteEffect();
   /** The look being drawn, read every frame so a live-tuned object applies at once. */
   private look: LookTuning = gameLook;
-  /** The lights' strength before the look's key and fill trims. */
+  /** The lights' strength and the fog's density before the look's trims. */
   private readonly sunBase: number;
   private readonly skyBase: number;
+  private readonly fog: FogExp2;
+  private readonly fogBase: number;
   private quality: ResolvedQuality;
   private readonly dynres: DynamicResolution;
   private readonly gpuTimer: GpuTimer;
@@ -135,7 +138,9 @@ export class Stage {
 
     this.camera = new PerspectiveCamera(50, 1, 0.1, options.far ?? DEFAULT_FAR);
     this.scene.background = new Color(palette.skyHorizon);
-    this.scene.fog = new FogExp2(palette.skyHorizon, options.fogDensity ?? DEFAULT_FOG_DENSITY);
+    this.fogBase = options.fogDensity ?? DEFAULT_FOG_DENSITY;
+    this.fog = new FogExp2(palette.skyHorizon, this.fogBase);
+    this.scene.fog = this.fog;
 
     this.sky = new Sky(palette.skyZenith, palette.skyHorizon, palette.sun);
     this.scene.add(this.sky);
@@ -217,6 +222,7 @@ export class Stage {
       pass.dispose();
     }
     this.grade = new GradeEffect();
+    this.vignette = new VignetteEffect({ darkness: this.look.vignette, offset: postFx.vignette.offset });
     const effects = [];
     if (q.bloom !== 'off') {
       const cheap = q.bloom === 'cheap' ? postFx.cheapBloom : null;
@@ -230,11 +236,7 @@ export class Stage {
         }),
       );
     }
-    effects.push(
-      new ToneMappingEffect({ mode: ToneMappingMode.NEUTRAL }),
-      this.grade,
-      new VignetteEffect({ darkness: postFx.vignette.darkness, offset: postFx.vignette.offset }),
-    );
+    effects.push(new ToneMappingEffect({ mode: ToneMappingMode.NEUTRAL }), this.grade, this.vignette);
     this.effectPasses = [new EffectPass(this.camera, ...effects)];
     // SMAA works on the finished image, in its own pass after the grade.
     if (q.antiAliasing === 'smaa') this.effectPasses.push(new EffectPass(this.camera, new SMAAEffect()));
@@ -298,7 +300,7 @@ export class Stage {
     return pass;
   }
 
-  /** Feeds this frame's cost to dynamic resolution and applies any step. */
+  /** Feeds the latest frame cost to dynamic resolution and applies any step. */
   private adaptResolution(dt: number, gpuMs: number | null): void {
     if (!this.quality.dynamic) return;
     this.unmeasured += dt;
@@ -317,13 +319,15 @@ export class Stage {
     if (changed) this.resize();
   }
 
-  /** Applies the look: light trims, HearthMaterial's shared uniforms and the Grade. */
+  /** Applies the look: light and fog trims, HearthMaterial's uniforms, the Grade and vignette. */
   private syncLook(): void {
     const look = this.look;
     this.sun.intensity = this.sunBase * look.sunStrength;
     this.hemi.intensity = this.skyBase * look.skyStrength;
+    this.fog.density = this.fogBase * look.fogThickness;
     syncHearthUniforms(look);
     this.grade.sync(look);
+    this.vignette.darkness = look.vignette;
   }
 
   onFrame(fn: (dt: number, t: number) => void): void {
@@ -338,6 +342,9 @@ export class Stage {
     for (const u of this.updaters) u(dt, this.elapsed);
     this.sky.position.copy(this.camera.position);
     const gpuMs = this.gpuTimer.poll();
+    // A step resizes, and a resize clears the canvas: it has to land before this frame draws, or
+    // the compositor shows the cleared canvas (the page behind it) for a frame.
+    this.adaptResolution(dt, gpuMs);
     const info = this.renderer.info;
     const pc = this.passCount;
     info.reset();
@@ -352,7 +359,6 @@ export class Stage {
     f.shadowTriangles = pc.shadowTriangles;
     f.postCalls = info.render.calls - pc.sceneCalls;
     if (gpuMs !== null) f.gpuMs = gpuMs;
-    this.adaptResolution(dt, gpuMs);
   }
 
   /** Stand-alone loop for Labs; the game drives `renderFrame` from its own GameLoop. */

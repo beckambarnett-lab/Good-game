@@ -7,6 +7,9 @@ import { BlendFunction, Effect } from 'postprocessing';
 import { Uniform, Vector3 } from 'three';
 import type { LookTuning } from '../../../data/tuning.ts';
 
+/** White balance at warmth ±1: red and blue shift by this fraction (luminance kept). */
+const WARMTH_SHIFT = 0.15;
+
 const FRAGMENT = /* glsl */ `
 uniform vec3 uBalance;
 uniform vec3 uLift;
@@ -73,7 +76,10 @@ export class GradeEffect extends Effect {
       const uniform = u.get(name);
       if (uniform) uniform.value = v;
     };
-    vec('uBalance', look.balance);
+    const r = 1 + WARMTH_SHIFT * look.temperature;
+    const b = 1 - WARMTH_SHIFT * look.temperature;
+    const luma = 0.2126 * r + 0.7152 + 0.0722 * b;
+    vec('uBalance', [r / luma, 1 / luma, b / luma]);
     vec('uLift', look.lift);
     vec('uGamma', look.gamma);
     vec('uGain', look.gain);

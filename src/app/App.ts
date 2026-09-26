@@ -106,6 +106,8 @@ export class App {
   readonly visibility = new Visibility(document, window);
   /** Screenshot status for `npm run shots` (only set in shot mode). */
   shot: ShotStatus | null = null;
+  /** A QA viewpoint the camera holds instead of following the walker (lab use). */
+  private held: ShotDef | null = null;
   private readonly host: HTMLElement;
   private readonly overlay: HTMLDivElement;
   private readonly hint: HTMLDivElement;
@@ -282,6 +284,21 @@ export class App {
     return this.rig;
   }
 
+  /**
+   * Holds the camera at a QA shot's viewpoint while the walker waits out of sight, or with null
+   * goes back behind the walker (the Valley Look lab's fixed views).
+   */
+  holdView(shot: ShotDef | null): void {
+    this.held = shot;
+    if (this.avatar) this.avatar.root.visible = !shot;
+    if (this.input) {
+      this.input.canLock = !shot;
+      if (shot && this.input.locked) document.exitPointerLock();
+    }
+    if (shot) this.frameShot(shot);
+    else this.frameStart();
+  }
+
   private wantsAudio(): boolean {
     return !!(this.options.footstepSounds || this.options.valleyPhrases);
   }
@@ -388,7 +405,7 @@ export class App {
     this.actions = this.input.poll(dt, this.inputOptions());
     this.hint.hidden = this.input.locked;
     const a = this.actions;
-    if (appStateTraits[this.fsm.current].input !== 'game') {
+    if (this.held || appStateTraits[this.fsm.current].input !== 'game') {
       this.player.setIntent(0, 0, false, false);
       return;
     }
@@ -480,6 +497,8 @@ export class App {
 
   private render(alpha: number, frameSeconds: number): void {
     if (!this.stage || !this.valley) return;
+    // A finished shot holds its frame, so the screenshot sees exactly that frame every run.
+    if (this.shot?.ready) return;
     const dt = this.shot ? SHOT_FRAME_SECONDS : frameSeconds;
     const t0 = performance.now();
     const cam = this.stage.camera;
@@ -490,9 +509,11 @@ export class App {
       if (s.grounded && !this.wasGrounded) this.footfall(0, true);
       this.wasGrounded = s.grounded;
       this.avatar.update(p.x, p.y, p.z, p.yaw, speed, s.grounded, dt);
-      this.rig.update(dt, { x: p.x, y: p.y, z: p.z, yaw: p.yaw, speed }, this.actions ?? NO_LOOK, cam);
+      if (!this.held) {
+        this.rig.update(dt, { x: p.x, y: p.y, z: p.z, yaw: p.yaw, speed }, this.actions ?? NO_LOOK, cam);
+        this.focus.set(p.x, p.y, p.z);
+      }
       this.actions = null;
-      this.focus.set(p.x, p.y, p.z);
     }
     if (this.fsm.current === 'playing') this.audio?.update(dt);
     this.valley.update(cam, dt);
@@ -500,9 +521,10 @@ export class App {
     this.stage.renderFrame(dt);
     this.timing.renderMs += (performance.now() - t0 - this.timing.renderMs) * TIMING_SMOOTHING;
     this.dev?.frame();
-    if (this.shot && !this.shot.ready && ++this.shotFrames >= SHOT_SETTLE_FRAMES) {
-      this.shot.passes = this.stage.measurePasses();
-      this.shot.ready = true;
+    if (this.shot) {
+      // Measuring draws the bare scene, so one more full frame follows before the shot is ready.
+      if (++this.shotFrames === SHOT_SETTLE_FRAMES) this.shot.passes = this.stage.measurePasses();
+      else if (this.shotFrames > SHOT_SETTLE_FRAMES) this.shot.ready = true;
     }
   }
 }

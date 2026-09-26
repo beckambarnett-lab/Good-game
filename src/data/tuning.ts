@@ -422,13 +422,15 @@ export interface LookTuning {
   /** Objects darken by this fraction at their base, fading out over `heightRange` metres. */
   heightDarken: number;
   heightRange: number;
+  /** Fog density as a multiple of the scene's own. */
+  fogThickness: number;
   /** Fog by distance through the air (1) or view depth (0), and thicker low in the valley. */
   fogRadial: number;
   fogBase: number;
   fogFalloff: number;
   fogHeightMix: number;
-  /** Grade: white balance multiplier (linear RGB), lift/gamma/gain, saturation, contrast. */
-  balance: readonly [number, number, number];
+  /** Grade: white balance (−1 cool … +1 warm), lift/gamma/gain, saturation, contrast. */
+  temperature: number;
   lift: readonly [number, number, number];
   gamma: readonly [number, number, number];
   gain: readonly [number, number, number];
@@ -441,6 +443,8 @@ export interface LookTuning {
   splitAmount: number;
   /** Film grain amplitude (Plan: 0.02, animated; hides sky banding). */
   grain: number;
+  /** Vignette darkness (Plan: 0.25). */
+  vignette: number;
 }
 
 export const look: LookTuning = {
@@ -452,11 +456,12 @@ export const look: LookTuning = {
   shadowTintStrength: 0,
   heightDarken: 0,
   heightRange: 1,
+  fogThickness: 1,
   fogRadial: 0,
   fogBase: 0,
   fogFalloff: 60,
   fogHeightMix: 0,
-  balance: [1, 1, 1],
+  temperature: 0,
   lift: [0, 0, 0],
   gamma: [1, 1, 1],
   gain: [1, 1, 1],
@@ -467,6 +472,7 @@ export const look: LookTuning = {
   splitBalance: 0,
   splitAmount: 0,
   grain: 0,
+  vignette: 0.28,
 };
 
 /** The plan's noon look (Part 5.2 key frames: noon contrast +0.05; snow shadow #B9CBE3). */
@@ -479,11 +485,12 @@ export const proposedLook: LookTuning = {
   shadowTintStrength: 0.6,
   heightDarken: 0.08,
   heightRange: 1,
+  fogThickness: 1,
   fogRadial: 1,
   fogBase: 0,
   fogFalloff: 45,
   fogHeightMix: 0.5,
-  balance: [1, 1, 1],
+  temperature: 0,
   lift: [0.005, 0.01, 0.025],
   gamma: [1, 1, 1],
   gain: [1, 1, 1],
@@ -494,6 +501,7 @@ export const proposedLook: LookTuning = {
   splitBalance: 0,
   splitAmount: 0.25,
   grain: 0.02,
+  vignette: 0.25,
 };
 
 /** Post-processing (Plan Part 5.10), until the Grade and time-of-day key frames drive it (M1). */
@@ -501,13 +509,14 @@ export interface PostFxTuning {
   bloom: { intensity: number; threshold: number; smoothing: number };
   /** Low preset: fewer blur levels at a lower resolution. */
   cheapBloom: { levels: number; resolutionScale: number };
-  vignette: { darkness: number; offset: number };
+  /** How far from the centre the vignette starts (its darkness is part of the look). */
+  vignette: { offset: number };
 }
 
 export const postFx: PostFxTuning = {
   bloom: { intensity: 0.45, threshold: 0.9, smoothing: 0.2 },
   cheapBloom: { levels: 4, resolutionScale: 0.35 },
-  vignette: { darkness: 0.28, offset: 0.35 },
+  vignette: { offset: 0.35 },
 };
 
 /** Frame and memory budgets (Plan Part 7.8, Medium, 1080p), shown by the dev overlay. */

@@ -53,6 +53,8 @@ export class Input {
   private wheel = 0;
   /** A mouse button went down on the game view and hasn't come up: drag-to-look. */
   private dragging = false;
+  /** Whether a click on the view takes the pointer for looking (not while a view is held). */
+  canLock = true;
   private readonly cleanups: (() => void)[] = [];
 
   constructor(target: HTMLElement) {
@@ -97,7 +99,7 @@ export class Input {
       this.dragging = false;
     });
     const lock = () => {
-      if (this.locked) return;
+      if (this.locked || !this.canLock) return;
       // A refused lock (a sandboxed frame, a phone) is fine: dragging still looks around. Newer
       // browsers reject a promise, older ones may throw.
       try {

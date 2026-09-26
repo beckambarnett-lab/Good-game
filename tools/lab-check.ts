@@ -5,6 +5,7 @@ import { createServer } from 'node:http';
 import { extname, join } from 'node:path';
 import { chromium } from '@playwright/test';
 import { chromiumArgs } from '../playwright.config.ts';
+import { decodePng } from './png.ts';
 
 const name = process.argv[2] ?? 'music';
 const root = join(import.meta.dirname, '..');
@@ -185,6 +186,98 @@ if (name === 'walk') {
     slowed &&
     phrase;
 }
+if (name === 'look') {
+  type Look = {
+    app: { playerState(): { x: number; z: number } | null };
+    playing(): boolean;
+    heldView(): string | null;
+    onScreen(): 'tuned' | 'today';
+  };
+  type Win = { __look: Look };
+  const settle = () => page.waitForTimeout(700);
+  // Mean luminance of the snow in the lower middle of the frame, clear of the lab's panels.
+  const snowLuma = async () => {
+    const { width, height, rgb } = decodePng(await page.screenshot());
+    let sum = 0;
+    let n = 0;
+    for (let y = Math.round(height * 0.62); y < Math.round(height * 0.95); y += 2) {
+      for (let x = Math.round(width * 0.14); x < Math.round(width * 0.64); x += 2) {
+        const i = (y * width + x) * 3;
+        sum +=
+          0.2126 * (rgb[i] as number) + 0.7152 * (rgb[i + 1] as number) + 0.0722 * (rgb[i + 2] as number);
+        n++;
+      }
+    }
+    return sum / n;
+  };
+  const setSlider = (id: string, value: number) =>
+    page.$eval(
+      `#${id}`,
+      (el, v) => {
+        (el as HTMLInputElement).value = String(v);
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+      },
+      value,
+    );
+
+  await page.click('#begin');
+  await page.waitForFunction(
+    () =>
+      (window as unknown as Win).__look.playing() && (window as unknown as Win).__look.heldView() === 'S02',
+    null,
+    { timeout: 120_000 },
+  );
+  await page.waitForTimeout(1500);
+  await shot('-1-proposed');
+  const proposed = await snowLuma();
+  await page.click('#show-m0');
+  await settle();
+  await shot('-2-today');
+  const today = await snowLuma();
+  await page.keyboard.down('KeyC');
+  await settle();
+  const flipped = await page.evaluate(() => (window as unknown as Win).__look.onScreen());
+  await page.keyboard.up('KeyC');
+  console.log(
+    `Snow luma: proposed ${proposed.toFixed(1)}, today ${today.toFixed(1)}; holding C shows ${flipped}`,
+  );
+
+  await setSlider('sun', 0.5);
+  await settle();
+  const dimSun = await snowLuma();
+  await page.click('#reset');
+  await settle();
+  const reset = await snowLuma();
+  console.log(`Sun at 50%: ${dimSun.toFixed(1)}; after reset ${reset.toFixed(1)}`);
+
+  await page.locator('#views').getByRole('button', { name: 'Lookout' }).click();
+  await settle();
+  const lookout = await page.evaluate(() => (window as unknown as Win).__look.heldView());
+  await shot('-3-lookout');
+  await page.keyboard.down('KeyW');
+  const walked = await page
+    .waitForFunction(
+      () => {
+        const look = (window as unknown as Win).__look;
+        const p = look.app.playerState();
+        // The lookout's eye (S08): walking starts there and moves on.
+        return look.heldView() === null && !!p && Math.hypot(p.x + 40, p.z + 222) > 2;
+      },
+      null,
+      { timeout: 60_000 },
+    )
+    .then(() => true)
+    .catch(() => false);
+  await page.keyboard.up('KeyW');
+  console.log(`Lookout held: ${lookout === 'S08'}; walks on from the view: ${walked}`);
+  ok =
+    proposed - today > 3 &&
+    flipped === 'tuned' &&
+    dimSun < proposed - 10 &&
+    Math.abs(reset - proposed) < 1.5 &&
+    lookout === 'S08' &&
+    walked;
+}
 await shot('');
 await browser.close();
 server.close();
@@ -195,7 +288,13 @@ if (errors.length > 0) {
 }
 if (!ok) {
   console.error(
-    `Lab check failed: ${name === 'walk' ? 'a footstep, slider or phrase check' : 'playback did not advance'}.`,
+    `Lab check failed: ${
+      name === 'walk'
+        ? 'a footstep, slider or phrase check'
+        : name === 'look'
+          ? 'a look, slider or view check'
+          : 'playback did not advance'
+    }.`,
   );
   process.exit(1);
 }
