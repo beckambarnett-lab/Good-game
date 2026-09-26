@@ -1,9 +1,14 @@
 # Progress
 
 **Current milestone:** M0 — Foundations
-**Last updated:** 2026-09-24
+**Last updated:** 2026-09-26
 
 ## Status log
+- 2026-09-26: Lab #4 **Valley look** published for review.
+  - HearthMaterial v0 (wrap diffuse, blue-tinted shade, base darkening, radial and height fog, dither fade) and the Grade (white balance, lift/gamma/gain, saturation, contrast, split toning, grain), with sun, sky, fog and vignette trims.
+  - One live look drives all of it. The game keeps today's neutral look until approval.
+  - Fixed: every dynamic-resolution step flashed one blank frame. An e2e test now covers it, and Lab #3 is republished with the fix (v3).
+  - Shots hold their finished frame, so they are pixel-identical run to run. S02 (woodlot) is added.
 - 2026-09-25: Dev tools: the dev overlay (F3 in dev builds, `?dev=1` anywhere) shows frame, GPU, sim-step and render CPU times, per-pass draws and triangles, heap, GPU-target and audio memory against the Plan 7.8 budgets; time and teleport cheats; `npm run soak` runs 30 in-game days headless in about 4 s (runs in CI); `pages.yml` deploys main and milestone tags.
 - 2026-09-24: Render core, part 1: Quality presets (the Plan 5.10 table, resolved from the graphics settings, Custom included) applied to anti-aliasing (MSAA/SMAA), bloom, shadows and render scale; dynamic resolution with a GPU timer or a frame-interval fallback (ADR 0003); shaders pre-warmed from the first view before play.
 - 2026-09-24: Lab #3 **Winter walk** published for review: the real valley with live sliders for walking, camera and footsteps; footsteps on powder, packed snow and ice (plus the cold squeak and a coat rustle) through a seeded footstep planner; the valley's occasional 4-bar felt-piano phrase (Director phrase mode). Both sounds stay lab-only until approved. `npm run audio` now measures every SFX variant and renders a walk.
@@ -23,7 +28,8 @@
 |---|---|---|
 | #1 Soundtrack: Wrenhollow Lullaby | **in review.** User supplied an alternative theme; direction pending | [Lab](https://claude.ai/artifact/JiveVgK6AeMt8GvXXvoAcu) · `docs/reviews/soundtrack-lullaby.md` |
 | #2 Felling minigame (swinging bar) | **in review** | [Lab](https://claude.ai/artifact/6WoiRfvAxPesv8yLczJVGh) · `docs/reviews/felling-minigame.md` |
-| #3 Winter walk (controls, camera, footsteps, piano phrase) | **in review** | [Lab](https://claude.ai/artifact/9SMnuu8SoFQB7rG7jUoDgN) · `docs/reviews/winter-walk.md` |
+| #3 Winter walk (controls, camera, footsteps, piano phrase) | **in review** (v3: flash fix) | [Lab](https://claude.ai/artifact/9SMnuu8SoFQB7rG7jUoDgN) · `docs/reviews/winter-walk.md` |
+| #4 Valley look (light, shade, fog, grade) | **in review** | [Lab](https://claude.ai/artifact/5ogEf6mcnRK97g4cs6e5WW) · `docs/reviews/valley-look.md` |
 
 ## Known issues / open questions
 - **Main theme direction:** the user's track vs P01. Waiting on the user: where the track came from (licence, and source code if it was made in code), and whether it becomes the main theme.
@@ -35,10 +41,11 @@
   - an ambient air bed.
 - **Pages deploy:** `pages.yml` is ready but deploys only from `main` or a milestone tag, and needs the one-time setting Settings → Pages → Source: GitHub Actions. I'll ask for it at the M0 playtest.
 - **Cheats:** weather and coin cheats wait on the Environment (M1.7) and the economy (M1.9).
-- **Controls feel and footsteps** are in review (Lab #3). Until approved, the game build keeps footstep sounds and the valley's piano phrases off (`AppOptions.footstepSounds` / `valleyPhrases`), so the M0 done-check "footsteps crunch, a felt-piano phrase plays" waits on that approval. No camera shake yet; trunks don't dither-fade yet (HearthMaterial).
+- **Controls feel and footsteps** are in review (Lab #3). Until approved, the game build keeps footstep sounds and the valley's piano phrases off (`AppOptions.footstepSounds` / `valleyPhrases`), so the M0 done-check "footsteps crunch, a felt-piano phrase plays" waits on that approval. No camera shake yet. HearthMaterial has the dither fade, but nothing fades trunks or camera occluders yet (M1).
 - **Audio mix:** the valley applies the Plan 6.10 bus levels (music −8 dB under world SFX); the standalone Labs #1 and #2 still play their buses at 0 dB, so their levels aren't comparable with the game's. The felt-piano bank renders all 46 zones (~28 MB) even for the valley's short phrase; render only the needed range later.
 - **Footstep surfaces:** the M0 valley has powder, packed (roads, rail bed) and ice. Deep-snow plunge, gravel, planks, interiors, trail wear and boot tiers join as their systems land (M1: snow patches and the trail map).
 - **Forest:** oaks (ridge old growth), apples and the maple grove arrive with M7/M8; forest cards beyond 300 m and quality-preset density with the render core; tree shadows don't sway yet (the depth material lacks the sway patch); the ridge's 120 fellable sites are designated in M8.
+- **Valley look:** the proposal is in review (Lab #4), and the game draws the neutral look until approval. Only the midday light exists; the grade's time-of-day key frames come with the Environment (M1.7). Broadleaf trees are grey stand-ins until the winter tree kit (M1), and the lake has no ice material yet.
 - **Valley look (M0 placeholders):** lighting uses a flat exposure scale (1.6) until the Environment key frames (M1.7); the valley is empty until the forest and buildings land; the world edge shows without the backdrop mountains; roads are vertex colour on the terrain, so their edges stair-step at far LODs (road ribbons come with M3).
 - **Save fixtures:** add `tests/fixtures/saves/v1.hearthwood` at the first playtest release, then one per released save version.
 - **Terrain gaps:** the ridge switchbacks, Ridge Trail and shore footpath are not in the terrain data yet (M8/M7). Terrain generation takes about 1 s on the main thread; move it to a worker with TerrainMesh.
@@ -63,8 +70,8 @@ Plan: `docs/plan/08-roadmap.md` → M0.
   - [x] Sim skeleton: `Sim.ts` system registry, fixed step, `advance`, serialize; `ClockSystem`
 - [ ] Render core
   - [x] Renderer (Stage), Quality presets, DynamicResolution (ADR 0003; cascades, N8AO and forest density rows wait on their systems)
-  - [ ] PostFX (bloom, tone map, vignette done; Grade, grain to come)
-  - [ ] HearthMaterial v0
+  - [x] PostFX: bloom, tone map, the Grade (white balance, lift/gamma/gain, saturation, contrast, split toning), grain, vignette. The look's values are in review (Lab #4).
+  - [x] HearthMaterial v0 (wrap, shade tint, base darkening, radial and height fog, dither fade). The code is in; the game draws the neutral look until Lab #4 is approved.
   - [x] Sky v0
   - [ ] Lights (hemi + sun done) + pool
   - [x] Prewarm (`compileAsync` + one full frame from the first view)
