@@ -1,5 +1,27 @@
 ## Part 8 — Phased Build Roadmap
 
+### 8.0 Review Lab workflow (user direction, 2026-09-24; overrides end-of-milestone playtests as the main gate)
+- **Testable work** (engine, sim, saves, economy maths, performance, tooling) is built and verified with tests, screenshots and metrics. No human review needed.
+- **Feel-critical work** is built first as a standalone **Lab** prototype and integrated into the game **only after the user explicitly approves it**. This covers every music piece, instrument and SFX set, ambience, each minigame (felling, splitting, sawing, stacking, shoveling, fishing), truck handling, camera, character looks and animation, lighting and weather looks, and UI look.
+- **The review loop:**
+  1. A Lab is a Vite entry (`lab/<name>.html`) with **live tuning sliders**, so the user can set the values they like.
+  2. Build it with `npm run lab:build <name>` and publish it as a private claude.ai Artifact.
+  3. The user comments; I iterate and republish to the same link until the user says "approved".
+  4. Freeze the approved values into `src/data/tuning.ts`, log the rounds in `docs/reviews/<name>.md`, then integrate.
+- **Scheduling:** while a Lab awaits review, keep building other unblocked items. Post review requests as soon as a Lab is ready. Hourly check-ins resume work if a session stops.
+- **Order of the first Labs:**
+  1. Soundtrack ("Wrenhollow Lullaby")
+  2. Felling minigame (swinging bar)
+  3. Splitting
+  4. Bucking and sawing
+  5. Stacking
+  6. Shoveling
+  7. Footsteps and ambience
+  8. Character look
+  9. Weather and lighting looks
+  10. Further music pieces, each reviewed separately
+- Milestone playtests (Part 8.2) still happen, as whole-game checks of already-approved parts.
+
 ### 8.1 How every build session works (the protocol future sessions follow)
 1. Read `CLAUDE.md`, then `docs/progress.md`, then the plan Part(s) for the current task.
 2. Take the **next unchecked task** of the current milestone. Tasks are listed below and mirrored as checkboxes in `progress.md`.

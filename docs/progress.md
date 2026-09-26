@@ -1,53 +1,103 @@
 # Progress
 
 **Current milestone:** M0 — Foundations
-**Last updated:** planning session (2026-09-24)
+**Last updated:** 2026-09-26
 
 ## Status log
-- 2026-09-24: Complete development plan written (`docs/plan/`). No code yet.
+- 2026-09-26: The point-light pool (Plan 5.3): the preset's fixed set of point lights (3/6/6/8), handed to the lantern first, then fires within 20 m, then the rest by distance, with a fade whenever a light changes hands. Idle lights leave every shot pixel-identical. The dev overlay counts lights in use and has a Lantern cheat to try it.
+- 2026-09-26: Lab #4 **Valley look** published for review.
+  - HearthMaterial v0 (wrap diffuse, blue-tinted shade, base darkening, radial and height fog, dither fade) and the Grade (white balance, lift/gamma/gain, saturation, contrast, split toning, grain), with sun, sky, fog and vignette trims.
+  - One live look drives all of it. The game keeps today's neutral look until approval.
+  - Fixed: every dynamic-resolution step flashed one blank frame. An e2e test now covers it, and Lab #3 is republished with the fix (v3).
+  - Shots hold their finished frame, so they are pixel-identical run to run. S02 (woodlot) is added.
+- 2026-09-25: Dev tools: the dev overlay (F3 in dev builds, `?dev=1` anywhere) shows frame, GPU, sim-step and render CPU times, per-pass draws and triangles, heap, GPU-target and audio memory against the Plan 7.8 budgets; time and teleport cheats; `npm run soak` runs 30 in-game days headless in about 4 s (runs in CI); `pages.yml` deploys main and milestone tags.
+- 2026-09-24: Render core, part 1: Quality presets (the Plan 5.10 table, resolved from the graphics settings, Custom included) applied to anti-aliasing (MSAA/SMAA), bloom, shadows and render scale; dynamic resolution with a GPU timer or a frame-interval fallback (ADR 0003); shaders pre-warmed from the first view before play.
+- 2026-09-24: Lab #3 **Winter walk** published for review: the real valley with live sliders for walking, camera and footsteps; footsteps on powder, packed snow and ice (plus the cold squeak and a coat rustle) through a seeded footstep planner; the valley's occasional 4-bar felt-piano phrase (Director phrase mode). Both sounds stay lab-only until approved. `npm run audio` now measures every SFX variant and renders a walk.
+- 2026-09-24: Complete development plan written (`docs/plan/`).
+- 2026-09-24: User switched to the review-gated Lab workflow and designed the swinging-bar felling minigame. `main` created; draft PR open, CI green.
+- 2026-09-24: Scaffold, core utilities, Sound Foundry, DirectorCore v1, Stage and Joinery built; Labs #1 and #2 published for review.
+- 2026-09-24: User supplied an alternative main theme. It was measured against P01; verdict and recommendation are in `docs/reviews/soundtrack-lullaby.md`. Waiting on provenance and direction.
+- 2026-09-24: TerrainGen v0 with the full town-bible layout (ADR 0001). `npm run map` added.
+- 2026-09-24: The valley is walkable: Input (KBM + gamepad + pointer lock, bindings as data), CameraRig (orbit, springs, terrain collision, lazy recenter), Movement (kinematic capsule per Plan 2.3: walk/jog, ice slide, slope limit, trunk collisions, hop) and a placeholder walker. Walking e2e test.
+- 2026-09-24: Forest v0: ~3,200 tree sites (Poisson-disc, deterministic, stable ids; woodlot 60 = 38/12/10, farm edge 20) generated in the terrain worker; one InstancedMesh per species × LOD with CPU culling, LOD hysteresis and wind sway (11 draw calls).
+- 2026-09-24: App shell (flow state machine, GameLoop, Settings, Visibility); TerrainMesh (batched chunk LODs); the valley test scene boots Splash → Loading (terrain worker) → Playing; `npm run shots` with 3 shots (S01, S04, S08) and budgets; valley e2e smoke test; shots uploaded by CI.
+- 2026-09-24: Sim core (system registry, fixed step, coarse advance, saved RNG streams, typed events, ClockSystem) and the save core (gzip + CRC, verify-after-write, A/B autosave + 3 manual slots, migrations, export/import, IndexedDB). Round trip passes in Node and in Chromium.
+
+## Review queue (Plan Part 8.0)
+
+| Lab | Status | Link |
+|---|---|---|
+| #1 Soundtrack: Wrenhollow Lullaby | **in review.** User supplied an alternative theme; direction pending | [Lab](https://claude.ai/artifact/JiveVgK6AeMt8GvXXvoAcu) · `docs/reviews/soundtrack-lullaby.md` |
+| #2 Felling minigame (swinging bar) | **in review** | [Lab](https://claude.ai/artifact/6WoiRfvAxPesv8yLczJVGh) · `docs/reviews/felling-minigame.md` |
+| #3 Winter walk (controls, camera, footsteps, piano phrase) | **in review** (v3: flash fix) | [Lab](https://claude.ai/artifact/9SMnuu8SoFQB7rG7jUoDgN) · `docs/reviews/winter-walk.md` |
+| #4 Valley look (light, shade, fog, grade) | **in review** | [Lab](https://claude.ai/artifact/5ogEf6mcnRK97g4cs6e5WW) · `docs/reviews/valley-look.md` |
 
 ## Known issues / open questions
-- None yet.
+- **Main theme direction:** the user's track vs P01. Waiting on the user: where the track came from (licence, and source code if it was made in code), and whether it becomes the main theme.
+- **Music engine gaps** exposed by the comparison (Lab #1 round 2 material):
+  - stereo width;
+  - a pedal/sub layer;
+  - dynamic arc and sectional contrast;
+  - softer felt-piano attacks;
+  - an ambient air bed.
+- **Pages deploy:** `pages.yml` is ready but deploys only from `main` or a milestone tag, and needs the one-time setting Settings → Pages → Source: GitHub Actions. I'll ask for it at the M0 playtest.
+- **Cheats:** weather and coin cheats wait on the Environment (M1.7) and the economy (M1.9).
+- **Controls feel and footsteps** are in review (Lab #3). Until approved, the game build keeps footstep sounds and the valley's piano phrases off (`AppOptions.footstepSounds` / `valleyPhrases`), so the M0 done-check "footsteps crunch, a felt-piano phrase plays" waits on that approval. No camera shake yet. HearthMaterial has the dither fade, but nothing fades trunks or camera occluders yet (M1).
+- **Audio mix:** the valley applies the Plan 6.10 bus levels (music −8 dB under world SFX); the standalone Labs #1 and #2 still play their buses at 0 dB, so their levels aren't comparable with the game's. The felt-piano bank renders all 46 zones (~28 MB) even for the valley's short phrase; render only the needed range later.
+- **Footstep surfaces:** the M0 valley has powder, packed (roads, rail bed) and ice. Deep-snow plunge, gravel, planks, interiors, trail wear and boot tiers join as their systems land (M1: snow patches and the trail map).
+- **Forest:** oaks (ridge old growth), apples and the maple grove arrive with M7/M8; forest cards beyond 300 m and quality-preset density with the render core; tree shadows don't sway yet (the depth material lacks the sway patch); the ridge's 120 fellable sites are designated in M8.
+- **Valley look:** the proposal is in review (Lab #4), and the game draws the neutral look until approval. Only the midday light exists; the grade's time-of-day key frames come with the Environment (M1.7). Broadleaf trees are grey stand-ins until the winter tree kit (M1), and the lake has no ice material yet.
+- **Valley look (M0 placeholders):** lighting uses a flat exposure scale (1.6) until the Environment key frames (M1.7); the valley is empty until the forest and buildings land; the world edge shows without the backdrop mountains; roads are vertex colour on the terrain, so their edges stair-step at far LODs (road ribbons come with M3).
+- **Save fixtures:** add `tests/fixtures/saves/v1.hearthwood` at the first playtest release, then one per released save version.
+- **Terrain gaps:** the ridge switchbacks, Ridge Trail and shore footpath are not in the terrain data yet (M8/M7). Terrain generation takes about 1 s on the main thread; move it to a worker with TerrainMesh.
 
 ---
 
 ## M0 — Foundations (≈ 4 sessions)
 Plan: `docs/plan/08-roadmap.md` → M0.
 
-- [ ] Scaffold
-  - [ ] Vite + TS strict + Biome + Vitest + Playwright 1.56.x (executablePath)
-  - [ ] npm scripts (Plan 7.10)
-  - [ ] `ci.yml` + `pages.yml`
-  - [ ] Update the Commands section of `CLAUDE.md`
-- [ ] App shell
-  - [ ] State machine
-  - [ ] Fixed-step loop with interpolation
-  - [ ] EventBus, Context, Settings (localStorage)
-  - [ ] Visibility handling
-  - [ ] Seeded RNG with forks
-- [ ] Render core
-  - [ ] Renderer, Quality presets, DynamicResolution
-  - [ ] PostFX (bloom, tone map, Grade, vignette, grain)
-  - [ ] HearthMaterial v0
-  - [ ] Sky v0
-  - [ ] Lights + pool
-  - [ ] Prewarm
-- [ ] World core: TerrainGen v0 (worker), TerrainMesh chunks, Heightfield queries
-- [ ] Joinery v0 + Pine v0 + Forest instancing v0 (CPU cull + LOD)
-- [ ] Input (KBM, gamepad, bindings, pointer lock), CameraRig v0, Movement v0 (capsule + BVH)
-- [ ] Audio core
-  - [ ] AudioEngine (unlock, buses, limiter, IR generator)
-  - [ ] Foundry worker pool + 3 recipes
-  - [ ] Lookahead scheduler
-  - [ ] DirectorCore v0 test phrase
-- [ ] Save core: IndexedDB, gzip, CRC, slots, migrations framework, round-trip test
-- [ ] Dev tools: overlay, cheats, `shots` (2 shots), `soak` and `audio-render` skeletons
+- [x] Scaffold
+  - [x] Vite + TS strict + Biome + Vitest + Playwright 1.56.x (executablePath)
+  - [x] npm scripts (Plan 7.10): dev, build, check, test, e2e, audio, map, shots, soak, lab:* (content, econ, perf, assets land with their milestones)
+  - [x] `ci.yml` + `pages.yml` (deploy needs the one-time Pages setting)
+  - [x] Update the Commands section of `CLAUDE.md`
+- [x] App shell
+  - [x] State machine: `StateMachine` (core) + the app flow and per-state traits (`src/app/states.ts`: which states step the world and run the clock)
+  - [x] Fixed-step loop with interpolation: `FixedStepper` + `GameLoop` (rAF, fps cap, pause without replay, stall cap)
+  - [x] EventBus, Settings (schema in `src/data/settings.ts`, validated, localStorage, live change events)
+  - [x] Visibility handling (`Visibility`: hidden/visible/pagehide events)
+  - [x] `App` assembly (the App holds the context: settings, flow, loop, sim, stage): Boot → Splash → Title (pass-through until M1) → Loading → Playing
+  - [x] Seeded RNG with forks (streams saved and restored)
+  - [x] Sim skeleton: `Sim.ts` system registry, fixed step, `advance`, serialize; `ClockSystem`
+- [x] Render core
+  - [x] Renderer (Stage), Quality presets, DynamicResolution (ADR 0003; cascades, N8AO and forest density rows wait on their systems)
+  - [x] PostFX: bloom, tone map, the Grade (white balance, lift/gamma/gain, saturation, contrast, split toning), grain, vignette. The look's values are in review (Lab #4).
+  - [x] HearthMaterial v0 (wrap, shade tint, base darkening, radial and height fog, dither fade). The code is in; the game draws the neutral look until Lab #4 is approved.
+  - [x] Sky v0
+  - [x] Lights: sun, hemisphere and the point-light pool (`LightPool`: fixed size per preset, ranked lantern → fires within 20 m → the rest by distance, fades between emitters). Lamps, windows and fires bring their emitters with their content (M1/M2).
+  - [x] Prewarm (`compileAsync` + one full frame from the first view)
+- [x] World core
+  - [x] TerrainGen v0: bible layout, spline roads with design grades, bridges, creek, rail (ADR 0001)
+  - [x] Heightfield queries (bilinear height, normal, slope)
+  - [x] TerrainGen in a worker (`terrain.worker.ts`, transferable payload)
+  - [x] TerrainMesh chunks (32 m × 4 LODs, gap-sized skirts, one BatchedMesh, LOD at 10 Hz with hysteresis; smooth-shaded, ADR 0002)
+- [x] Joinery v0 + Pine v0 (plus birch; LOD1/LOD2 variants, stumps) + Forest instancing v0 (CPU cull + LOD at 10 Hz, sway)
+- [x] Input (KBM, gamepad, bindings, pointer lock), CameraRig v0 (orbit, springs, terrain collision, lazy recenter), Movement v0 (capsule on the heightfield + trunk colliders; the building BVH arrives with the cabin in M1)
+- [x] Audio core
+  - [x] AudioEngine (unlock, buses, limiter, IR generator)
+  - [x] Foundry worker pool + 3 recipes (snow crunch, felt-piano note; the UI tick comes with the UI)
+  - [x] Lookahead scheduler
+  - [x] DirectorCore test phrase (v1 already, for Lab #1)
+- [x] Save core: IndexedDB, gzip, CRC, slots (A/B autosave + 3 manual), migrations framework, round-trip test (unit + e2e)
+- [x] Dev tools: overlay with budgets, cheats (time, teleport; weather and coins with their systems), `soak` (30 days, in CI), `shots`, audio-render, map
 - [ ] **Done-check:**
-  - [ ] CI green
-  - [ ] Pages test scene (walkable valley, swaying pines, crunching footsteps, felt-piano phrase)
-  - [ ] Save round-trip passes
-  - [ ] Screenshot artifacts
-  - [ ] Budgets shown in the dev overlay
+  - [x] CI green (every push to the PR so far)
+  - [ ] Pages test scene (walkable valley, swaying pines, crunching footsteps, felt-piano phrase): all built; footsteps and the phrase are in review (Lab #3), so they join the Pages build on approval
+  - [x] Save round-trip passes (`tests/unit/save.test.ts`, `tests/e2e/save.spec.ts`)
+  - [x] Screenshot artifacts (`npm run shots`; CI uploads `artifacts/shots/`)
+  - [x] Budgets shown in the dev overlay (`?dev=1`; e2e `tests/e2e/dev.spec.ts`)
+
+**Built early for later milestones:** Clock/calendar (M1.7), the felling sim + SFX recipes (M1.4, Lab #2) and the footstep system (M1.11, Lab #3).
 
 ## M1 — Vertical Slice, already polished (≈ 14 sessions) ★
 Plan: `docs/plan/08-roadmap.md` → M1.
@@ -72,7 +122,7 @@ Plan: `docs/plan/08-roadmap.md` → M1.
   - [ ] Shoveling with banks
   - [ ] Footprints and trail map
   - [ ] Snowcap, sparkle
-- [ ] 7. Clock/calendar, 5 weather states, Environment key frames, radio forecast v0
+- [ ] 7. Clock/calendar (done), 5 weather states, Environment key frames, radio forecast v0
 - [ ] 8. Warmth v1, thermos and cocoa, lantern
 - [ ] 9. Economy mini
   - [ ] Ines buys wood
@@ -88,7 +138,7 @@ Plan: `docs/plan/08-roadmap.md` → M1.
   - [ ] Dog Anvil
 - [ ] 11. Audio
   - [ ] VS SFX set
-  - [ ] Footstep system
+  - [ ] Footstep system (built early for Lab #3: planner, 5 recipes, surface resolution for the M0 surfaces; in review)
   - [ ] Ambience
   - [ ] Mixer snapshots, ducking
 - [ ] 12. Music

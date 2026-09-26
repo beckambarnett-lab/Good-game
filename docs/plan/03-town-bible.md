@@ -34,7 +34,7 @@ A backdrop ring of low-poly mountains (Graybeard Peak 1,900 m to the north, the 
 | Cabin & Woodlot | −250..−150, −100..+40 | 5–25 | `cabin`, `woodlot` | Always | Always (driveway) |
 | Wrenhollow town | −110..+110, −90..+70 | 0–3 | `town` | Always | Always (Main Street is plowed by Rusty) |
 | School & School Hill | −70..−10, −150..−60 | 2–30 | `town` / `hill` | Always | School Lane |
-| Stillmere Lake | 150..280, −50..130 | 0 (ice) | `lake` | Always via the shore footpath. **Ice safe from Day 6** | **Plow Blade** clears the Lake Road drift |
+| Stillmere Lake | 150..280, −50..130 | −3.2 (ice, the valley's lowest point; ADR 0001) | `lake` | Always via the shore footpath. **Ice safe from Day 6** | **Plow Blade** clears the Lake Road drift |
 | Lindqvist Farm | −20..140, 90..230 | −2..4 | `farm` | Always (deep unplowed lane, slow) | **Snow Tires** (or Plow) for the lane's 14° rise |
 | Tallow Creek | −256..150, 80..115 | −3 | `creek` | Ice walkable from Day 6 | Bridge at (50, 95) |
 | Graybeard Ridge | −240..+60, −256..−140 | 40–90 | `ridge` | **Crampon Boots** on the Ridge Trail | **Tire Chains** on the switchbacks |

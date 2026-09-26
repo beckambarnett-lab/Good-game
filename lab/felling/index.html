@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Felling Minigame Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Nunito:wght@400;600;700;800&display=swap" />
+<style>
+  /* Single deliberate look: a snowy daylight scene with paper UI, the same in either theme. */
+  :root {
+    --paper: #f3ebdd;
+    --paper-2: #eadfcc;
+    --ink: #3a3230;
+    --ink-soft: #6f6560;
+    --line: #d6c9b3;
+    --accent: #b5322e;
+    --pine: #3e7361;
+    --green: #6fae5a;
+    --green-deep: #3f7d3a;
+    --amber: #e7a13d;
+    color-scheme: light;
+  }
+  [hidden] { display: none !important; }
+  html, body { height: 100%; }
+  body { margin: 0; background: #dce8f5; color: var(--ink); font: 15px/1.45 "Nunito", "Segoe UI", system-ui, sans-serif; overflow: hidden; }
+  #scene { position: fixed; inset: 0; }
+  #scene canvas { display: block; width: 100%; height: 100%; outline: none; }
+  .hud { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); display: grid; gap: 8px; justify-items: center; width: min(560px, calc(100% - 32px)); pointer-events: none; }
+  .chop-bar { width: 100%; transition: opacity 0.4s ease, transform 0.4s ease; filter: drop-shadow(0 3px 6px rgba(40, 30, 20, 0.25)); }
+  .chop-bar.hidden-bar { opacity: 0; transform: translateY(12px); }
+  .chop-bar svg { width: 100%; height: auto; display: block; }
+  .bar-paper { fill: var(--paper); }
+  .bar-ink { fill: none; stroke: var(--ink); stroke-width: 2.2; stroke-linejoin: round; }
+  .bar-green { fill: var(--green); opacity: 0.85; }
+  .bar-perfect { fill: var(--green-deep); }
+  .marker-head { fill: var(--accent); stroke: var(--ink); stroke-width: 1.4; stroke-linejoin: round; }
+  .marker-line { fill: var(--ink); }
+  .chop-bar.hit { animation: pulse 0.25s ease; }
+  .chop-bar.perfect { animation: pulse-big 0.35s ease; }
+  .chop-bar.miss { animation: shake 0.3s ease; }
+  @keyframes pulse { 50% { transform: scale(1.03); } }
+  @keyframes pulse-big { 40% { transform: scale(1.06); filter: drop-shadow(0 0 10px rgba(111, 174, 90, 0.9)); } }
+  @keyframes shake { 20% { transform: translateX(-6px); } 45% { transform: translateX(5px); } 70% { transform: translateX(-3px); } }
+  .chop-pips { display: flex; gap: 10px; }
+  .chop-pips span { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--ink); background: var(--paper); transition: background 0.2s ease, transform 0.2s ease; }
+  .chop-pips span.filled { background: var(--accent); transform: scale(1.15); }
+  .prompt { background: var(--paper); border: 2px solid var(--ink); border-radius: 999px; padding: 4px 14px; font-weight: 700; font-size: 14px; }
+  .top { position: fixed; top: calc(14px + env(safe-area-inset-top, 0px)); left: 16px; display: grid; gap: 8px; max-width: calc(100% - 32px); }
+  .title { background: var(--paper); border: 2px solid var(--ink); border-radius: 12px; padding: 8px 14px; }
+  .title h1 { font-family: "Fraunces", Georgia, serif; font-size: 20px; margin: 0; line-height: 1.2; }
+  .title p { margin: 2px 0 0; font-size: 13px; color: var(--ink-soft); }
+  .trees { display: flex; flex-wrap: wrap; gap: 6px; }
+  button { font: inherit; font-weight: 700; border-radius: 10px; border: 2px solid var(--ink); background: var(--paper); color: var(--ink); padding: 6px 12px; cursor: pointer; }
+  button[aria-pressed="true"] { background: var(--pine); color: #fff8ef; }
+  button:focus-visible, input:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
+  .panel { position: fixed; top: calc(14px + env(safe-area-inset-top, 0px)); right: 16px; width: min(300px, calc(100% - 32px)); max-height: calc(100% - 180px); overflow-y: auto; background: var(--paper); border: 2px solid var(--ink); border-radius: 12px; padding: 12px 14px; display: grid; gap: 10px; }
+  .panel summary { font-family: "Fraunces", Georgia, serif; font-weight: 700; font-size: 17px; cursor: pointer; }
+  .panel details[open] summary { margin-bottom: 8px; }
+  .slider { display: grid; gap: 2px; font-size: 13px; }
+  .slider div { display: flex; justify-content: space-between; }
+  .slider output { font-variant-numeric: tabular-nums; color: var(--ink-soft); }
+  input[type="range"] { width: 100%; accent-color: var(--accent); }
+  .check { display: flex; gap: 8px; align-items: center; font-size: 13px; }
+  .stats { font-size: 13px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+  pre { white-space: pre-wrap; font-size: 12px; background: var(--paper-2); border: 1px solid var(--line); border-radius: 8px; padding: 8px; margin: 0; }
+  .start { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(220, 232, 245, 0.55); }
+  .start div { background: var(--paper); border: 2px solid var(--ink); border-radius: 16px; padding: 22px 26px; max-width: 440px; margin: 16px; display: grid; gap: 10px; text-align: center; }
+  .start h2 { font-family: "Fraunces", Georgia, serif; margin: 0; font-size: 26px; }
+  .start p { margin: 0; color: var(--ink-soft); }
+  .start button { justify-self: center; background: var(--accent); color: #fff8ef; font-size: 17px; padding: 10px 22px; }
+  @media (max-width: 700px) {
+    .panel { top: auto; bottom: calc(150px + env(safe-area-inset-bottom, 0px)); max-height: 40%; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .chop-bar.hit, .chop-bar.perfect, .chop-bar.miss { animation: none; }
+  }
+</style>
+</head>
+<body>
+<div id="scene"></div>
+
+<div class="top">
+  <div class="title">
+    <h1>Felling minigame</h1>
+    <p>Hearthwood · Review Lab #2 · your swinging-bar design</p>
+  </div>
+  <div class="trees" id="trees">
+    <button type="button" data-size="small" aria-pressed="false">Small birch</button>
+    <button type="button" data-size="medium" aria-pressed="true">Medium pine</button>
+    <button type="button" data-size="large" aria-pressed="false">Large pine</button>
+  </div>
+</div>
+
+<aside class="panel" aria-label="Tuning">
+  <details open>
+    <summary>Tune it</summary>
+    <div style="display: grid; gap: 10px">
+      <label class="slider"><div><span>Green zone</span><output id="green-out"></output></div><input id="green" type="range" min="0.08" max="0.45" step="0.01" /></label>
+      <label class="slider"><div><span>Perfect band</span><output id="perfect-out"></output></div><input id="perfect" type="range" min="0" max="0.15" step="0.01" /></label>
+      <label class="slider"><div><span>Bar speed · small tree</span><output id="small-out"></output></div><input id="small" type="range" min="0.35" max="2.5" step="0.05" /></label>
+      <label class="slider"><div><span>Bar speed · medium tree</span><output id="medium-out"></output></div><input id="medium" type="range" min="0.35" max="2.5" step="0.05" /></label>
+      <label class="slider"><div><span>Bar speed · large tree</span><output id="large-out"></output></div><input id="large" type="range" min="0.35" max="3" step="0.05" /></label>
+      <label class="slider"><div><span>Chops to fell</span><output id="chops-out"></output></div><input id="chops" type="range" min="1" max="6" step="1" /></label>
+      <label class="slider"><div><span>Axe (widens the green)</span><output id="axe-out"></output></div><input id="axe" type="range" min="0" max="4" step="1" value="0" /></label>
+      <label class="slider"><div><span>Sound volume</span><output id="volume-out"></output></div><input id="volume" type="range" min="0" max="1.5" step="0.05" value="1" /></label>
+      <label class="check" for="relaxed"><input id="relaxed" type="checkbox" /> Relaxed mode (marker slows in the green)</label>
+      <div class="stats" id="stats">Chops 0 · Perfect 0 · Misses 0</div>
+      <pre id="settings"></pre>
+      <button type="button" id="copy">Copy settings</button>
+      <span class="stats" id="copy-status"></span>
+    </div>
+  </details>
+</aside>
+
+<div class="hud" id="hud">
+  <div class="prompt" id="prompt">Space or click when the marker is in the green</div>
+</div>
+
+<div class="start" id="start">
+  <div>
+    <h2>Fell a tree</h2>
+    <p>A marker swings across the bar. Chop when it's in the green: three chops fell the tree. Bigger trees swing slower. Misses cost nothing.</p>
+    <p>Tune anything with the panel, then copy your settings to me.</p>
+    <button type="button" id="begin">Start (turns sound on)</button>
+  </div>
+</div>
+<script type="module" src="../../src/labs/felling/main.ts"></script>
+</body>
+</html>
