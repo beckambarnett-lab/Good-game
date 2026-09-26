@@ -4,6 +4,7 @@
 **Last updated:** 2026-09-26
 
 ## Status log
+- 2026-09-26: The point-light pool (Plan 5.3): the preset's fixed set of point lights (3/6/6/8), handed to the lantern first, then fires within 20 m, then the rest by distance, with a fade whenever a light changes hands. Idle lights leave every shot pixel-identical. The dev overlay counts lights in use and has a Lantern cheat to try it.
 - 2026-09-26: Lab #4 **Valley look** published for review.
   - HearthMaterial v0 (wrap diffuse, blue-tinted shade, base darkening, radial and height fog, dither fade) and the Grade (white balance, lift/gamma/gain, saturation, contrast, split toning, grain), with sun, sky, fog and vignette trims.
   - One live look drives all of it. The game keeps today's neutral look until approval.
@@ -55,12 +56,12 @@
 ## M0 — Foundations (≈ 4 sessions)
 Plan: `docs/plan/08-roadmap.md` → M0.
 
-- [ ] Scaffold
+- [x] Scaffold
   - [x] Vite + TS strict + Biome + Vitest + Playwright 1.56.x (executablePath)
   - [x] npm scripts (Plan 7.10): dev, build, check, test, e2e, audio, map, shots, soak, lab:* (content, econ, perf, assets land with their milestones)
   - [x] `ci.yml` + `pages.yml` (deploy needs the one-time Pages setting)
   - [x] Update the Commands section of `CLAUDE.md`
-- [ ] App shell
+- [x] App shell
   - [x] State machine: `StateMachine` (core) + the app flow and per-state traits (`src/app/states.ts`: which states step the world and run the clock)
   - [x] Fixed-step loop with interpolation: `FixedStepper` + `GameLoop` (rAF, fps cap, pause without replay, stall cap)
   - [x] EventBus, Settings (schema in `src/data/settings.ts`, validated, localStorage, live change events)
@@ -68,14 +69,14 @@ Plan: `docs/plan/08-roadmap.md` → M0.
   - [x] `App` assembly (the App holds the context: settings, flow, loop, sim, stage): Boot → Splash → Title (pass-through until M1) → Loading → Playing
   - [x] Seeded RNG with forks (streams saved and restored)
   - [x] Sim skeleton: `Sim.ts` system registry, fixed step, `advance`, serialize; `ClockSystem`
-- [ ] Render core
+- [x] Render core
   - [x] Renderer (Stage), Quality presets, DynamicResolution (ADR 0003; cascades, N8AO and forest density rows wait on their systems)
   - [x] PostFX: bloom, tone map, the Grade (white balance, lift/gamma/gain, saturation, contrast, split toning), grain, vignette. The look's values are in review (Lab #4).
   - [x] HearthMaterial v0 (wrap, shade tint, base darkening, radial and height fog, dither fade). The code is in; the game draws the neutral look until Lab #4 is approved.
   - [x] Sky v0
-  - [ ] Lights (hemi + sun done) + pool
+  - [x] Lights: sun, hemisphere and the point-light pool (`LightPool`: fixed size per preset, ranked lantern → fires within 20 m → the rest by distance, fades between emitters). Lamps, windows and fires bring their emitters with their content (M1/M2).
   - [x] Prewarm (`compileAsync` + one full frame from the first view)
-- [ ] World core
+- [x] World core
   - [x] TerrainGen v0: bible layout, spline roads with design grades, bridges, creek, rail (ADR 0001)
   - [x] Heightfield queries (bilinear height, normal, slope)
   - [x] TerrainGen in a worker (`terrain.worker.ts`, transferable payload)
@@ -90,7 +91,7 @@ Plan: `docs/plan/08-roadmap.md` → M0.
 - [x] Save core: IndexedDB, gzip, CRC, slots (A/B autosave + 3 manual), migrations framework, round-trip test (unit + e2e)
 - [x] Dev tools: overlay with budgets, cheats (time, teleport; weather and coins with their systems), `soak` (30 days, in CI), `shots`, audio-render, map
 - [ ] **Done-check:**
-  - [ ] CI green
+  - [x] CI green (every push to the PR so far)
   - [ ] Pages test scene (walkable valley, swaying pines, crunching footsteps, felt-piano phrase): all built; footsteps and the phrase are in review (Lab #3), so they join the Pages build on approval
   - [x] Save round-trip passes (`tests/unit/save.test.ts`, `tests/e2e/save.spec.ts`)
   - [x] Screenshot artifacts (`npm run shots`; CI uploads `artifacts/shots/`)

@@ -10,6 +10,7 @@ import {
   app as appTuning,
   type CameraRigTuning,
   clock as clockTuning,
+  devLantern,
   type FootstepTuning,
   footsteps as footstepTuning,
   type GaitTuning,
@@ -38,6 +39,7 @@ import { CameraRig } from '../view/camera/CameraRig.ts';
 import { generateTerrainInWorker } from '../view/geo/terrain/TerrainClient.ts';
 import { Input } from '../view/input/Input.ts';
 import type { ActionState, InputOptions } from '../view/input/InputMapper.ts';
+import type { LightEmitter } from '../view/render/LightPool.ts';
 import { resolveQuality } from '../view/render/Quality.ts';
 import { type PassStats, Stage } from '../view/render/Stage.ts';
 import { ValleyScene } from '../view/scenes/ValleyScene.ts';
@@ -137,6 +139,8 @@ export class App {
   private dev: DevOverlay | null = null;
   /** The cheats, once the world exists (dev builds and tests). */
   cheats: Cheats | null = null;
+  /** The dev cheat's lantern, while it's lit. */
+  private lantern: LightEmitter | null = null;
 
   constructor(host: HTMLElement, options: AppOptions = {}) {
     this.options = options;
@@ -445,6 +449,39 @@ export class App {
     this.stage.followShadow(this.focus);
   }
 
+  /** The dev cheat's lantern: a light-pool emitter carried at the walker's shoulder. */
+  private setLantern(on: boolean): void {
+    const lights = this.stage?.lights;
+    if (!lights) return;
+    if (on && !this.lantern) {
+      this.lantern = lights.add({
+        kind: 'lantern',
+        x: 0,
+        y: 0,
+        z: 0,
+        color: devLantern.color,
+        intensity: devLantern.intensity,
+        range: devLantern.range,
+        on: true,
+      });
+      const s = this.player?.state;
+      if (s) this.carryLantern(s.x, s.y, s.z, s.yaw);
+    } else if (!on && this.lantern) {
+      lights.remove(this.lantern);
+      this.lantern = null;
+    }
+  }
+
+  /** Holds the dev lantern at the walker's right hand. */
+  private carryLantern(x: number, y: number, z: number, yaw: number): void {
+    const l = this.lantern;
+    if (!l) return;
+    // Facing (sin yaw, cos yaw); the walker's right is (−cos yaw, sin yaw).
+    l.x = x + Math.sin(yaw) * devLantern.forward - Math.cos(yaw) * devLantern.side;
+    l.y = y + devLantern.height;
+    l.z = z + Math.cos(yaw) * devLantern.forward + Math.sin(yaw) * devLantern.side;
+  }
+
   /** Skips game time through every system's coarse advance (cheats, and sleeping later). */
   advanceMinutes(minutes: number): void {
     this.sim?.advance(minutes);
@@ -458,6 +495,7 @@ export class App {
         clock: clockSystem.clock,
         advanceMinutes: (m) => this.advanceMinutes(m),
         teleport: (x, z, yaw) => this.teleport(x, z, yaw),
+        setLantern: (on) => this.setLantern(on),
       },
       places,
     );
@@ -487,6 +525,8 @@ export class App {
       targetsMB: stage?.estimateTargetsMB() ?? 0,
       pcmMB: (this.audio?.pcmBytes ?? 0) / MB,
       renderScale: stage?.renderScale ?? 1,
+      lightsInUse: stage?.lights.inUse ?? 0,
+      lightsPooled: stage?.lights.size ?? 0,
       quality: `${this.settings.get('graphics', 'preset')} · ${stage?.qualityLabel ?? ''}`,
       time: clock ? `${formatTime(clock.now())} · ${clock.pace}${clock.frozen ? ' · frozen' : ''}` : '',
       where: s
@@ -509,6 +549,7 @@ export class App {
       if (s.grounded && !this.wasGrounded) this.footfall(0, true);
       this.wasGrounded = s.grounded;
       this.avatar.update(p.x, p.y, p.z, p.yaw, speed, s.grounded, dt);
+      this.carryLantern(p.x, p.y, p.z, p.yaw);
       if (!this.held) {
         this.rig.update(dt, { x: p.x, y: p.y, z: p.z, yaw: p.yaw, speed }, this.actions ?? NO_LOOK, cam);
         this.focus.set(p.x, p.y, p.z);

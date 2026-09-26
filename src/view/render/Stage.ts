@@ -31,10 +31,17 @@ import {
   WebGLRenderer,
 } from 'three';
 import type { ShadowSpec } from '../../data/quality.ts';
-import { dynamicResolution, look as gameLook, type LookTuning, postFx } from '../../data/tuning.ts';
+import {
+  dynamicResolution,
+  look as gameLook,
+  type LookTuning,
+  lightPool,
+  postFx,
+} from '../../data/tuning.ts';
 import { DynamicResolution } from './DynamicResolution.ts';
 import { GradeEffect } from './effects/GradeEffect.ts';
 import { GpuTimer } from './GpuTimer.ts';
+import { LightPool } from './LightPool.ts';
 import { syncHearthUniforms } from './materials/hearth.ts';
 import { palette } from './palette.ts';
 import { defaultQuality, pixelRatioFor, type ResolvedQuality } from './Quality.ts';
@@ -71,6 +78,8 @@ export class Stage {
   readonly camera: PerspectiveCamera;
   readonly sun: DirectionalLight;
   readonly hemi: HemisphereLight;
+  /** The preset's fixed set of point lights, handed to lanterns, fires and lamps (Plan 5.3). */
+  readonly lights: LightPool;
   readonly sky: Sky;
   private readonly composer: EffectComposer;
   private effectPasses: EffectPass[] = [];
@@ -161,6 +170,8 @@ export class Stage {
     this.sun.shadow.bias = -0.0004;
     this.sun.shadow.normalBias = 0.03;
     this.scene.add(this.sun, this.sun.target);
+    this.lights = new LightPool(this.quality.pointLights, lightPool);
+    this.scene.add(this.lights.group);
     this.sky.setSunDirection(new Vector3().copy(this.sunOffset).normalize());
     // Light-space basis for texel snapping (the sun direction is fixed until Environment lands).
     this.lightDir.copy(this.sunOffset).normalize();
@@ -201,6 +212,7 @@ export class Stage {
     this.targetMs = 1000 / (fpsCap ?? DEFAULT_TARGET_FPS);
     if (before.antiAliasing !== q.antiAliasing || before.bloom !== q.bloom) this.buildPost(q);
     this.applyShadows(q.shadow);
+    this.lights.resize(q.pointLights);
     this.dynres.setRange(q.dynamic ? q.autoScaleFloor : q.renderScale, q.renderScale);
     this.resize();
   }
@@ -341,6 +353,7 @@ export class Stage {
     this.syncLook();
     for (const u of this.updaters) u(dt, this.elapsed);
     this.sky.position.copy(this.camera.position);
+    this.lights.update(this.camera.position, dt);
     const gpuMs = this.gpuTimer.poll();
     // A step resizes, and a resize clears the canvas: it has to land before this frame draws, or
     // the compositor shows the cleared canvas (the page behind it) for a frame.

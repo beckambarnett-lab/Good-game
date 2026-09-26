@@ -22,6 +22,8 @@ const calm: DevReadings = {
   pcmMB: 30,
   renderScale: 1,
   quality: 'medium',
+  lightsInUse: 0,
+  lightsPooled: 6,
   time: '',
   where: '',
 };
@@ -52,15 +54,17 @@ describe('cheats', () => {
   const setup = () => {
     const clock = new Clock(clockTuning);
     const moves: [number, number, number][] = [];
+    const lanterns: boolean[] = [];
     const cheats = new Cheats(
       {
         clock,
         advanceMinutes: (m) => clock.advanceMinutes(m),
         teleport: (x, z, yaw) => moves.push([x, z, yaw]),
+        setLantern: (on) => lanterns.push(on),
       },
       places,
     );
-    return { clock, cheats, moves };
+    return { clock, cheats, moves, lanterns };
   };
 
   it('skips time by the hour and to the next dawn, noon, dusk or night', () => {
@@ -87,5 +91,12 @@ describe('cheats', () => {
     expect(moves[0]).toEqual([232, 40, -Math.PI / 2]);
     expect(cheats.goTo('nowhere')).toBe(false);
     expect(moves.length).toBe(1);
+  });
+
+  it('lights and puts away the test lantern', () => {
+    const { cheats, lanterns } = setup();
+    expect(cheats.toggleLantern()).toBe(true);
+    expect(cheats.toggleLantern()).toBe(false);
+    expect(lanterns).toEqual([true, false]);
   });
 });

@@ -27,6 +27,9 @@ export interface DevReadings {
   pcmMB: number;
   renderScale: number;
   quality: string;
+  /** Pooled point lights showing an emitter, and the pool's size. */
+  lightsInUse: number;
+  lightsPooled: number;
   time: string;
   where: string;
 }
@@ -195,6 +198,7 @@ export class DevOverlay {
     add('Night', () => cheats.skipTo(22));
     add('Freeze clock', () => cheats.toggleFreeze());
     add('Pace', () => cheats.cyclePace());
+    add('Lantern', () => cheats.toggleLantern());
     for (const p of places) add(p.label, () => cheats.goTo(p.id));
     this.root.append(style, title, this.table, this.info, buttons);
     host.append(this.root);
@@ -260,6 +264,7 @@ export class DevOverlay {
     this.info.textContent = [
       `Render scale ${Math.round(r.renderScale * 100)}% · ${r.quality}`,
       `Post passes ${r.postCalls} draws`,
+      `Point lights ${r.lightsInUse} of ${r.lightsPooled} in use`,
       r.time,
       r.where,
     ].join('\n');

@@ -1,6 +1,7 @@
-// Dev cheats (Plan Part 7.3, M0): skip time and teleport. Weather and coin cheats join when the
-// Environment (M1.7) and the economy (M1.9) exist. Time jumps go through the sim's coarse
-// `advance`, the same path sleeping will use, so they exercise real code.
+// Dev cheats (Plan Part 7.3, M0): skip time, teleport, and carry a test lantern for the light
+// pool. Weather and coin cheats join when the Environment (M1.7) and the economy (M1.9) exist.
+// Time jumps go through the sim's coarse `advance`, the same path sleeping will use, so they
+// exercise real code.
 
 import type { Place } from '../data/world/places.ts';
 import type { Clock, Pace } from '../sim/clock/Clock.ts';
@@ -10,6 +11,8 @@ export interface CheatTarget {
   /** Skips game time through every system's coarse advance. */
   advanceMinutes(minutes: number): void;
   teleport(x: number, z: number, yaw: number): void;
+  /** Carries a test lantern (a light-pool emitter) at the walker's shoulder, or puts it away. */
+  setLantern(on: boolean): void;
 }
 
 const PACES: readonly Pace[] = ['relaxed', 'standard', 'brisk'];
@@ -17,6 +20,7 @@ const PACES: readonly Pace[] = ['relaxed', 'standard', 'brisk'];
 export class Cheats {
   private readonly target: CheatTarget;
   private readonly places: readonly Place[];
+  private lantern = false;
 
   constructor(target: CheatTarget, places: readonly Place[]) {
     this.target = target;
@@ -42,6 +46,12 @@ export class Cheats {
     const clock = this.target.clock;
     clock.pace = PACES[(PACES.indexOf(clock.pace) + 1) % PACES.length] ?? 'standard';
     return clock.pace;
+  }
+
+  toggleLantern(): boolean {
+    this.lantern = !this.lantern;
+    this.target.setLantern(this.lantern);
+    return this.lantern;
   }
 
   /** Teleports to a named place; false if there's no such place. */

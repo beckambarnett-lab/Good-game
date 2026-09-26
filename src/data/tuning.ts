@@ -504,6 +504,43 @@ export const proposedLook: LookTuning = {
   vignette: 0.25,
 };
 
+/**
+ * The point-light pool (Plan Part 5.3): the quality preset's fixed number of PointLights, handed to
+ * the emitters that matter most: the player's lantern, then fires within `fireRange`, then the
+ * rest by distance. A light that changes hands fades out, then in, so nothing pops.
+ */
+export interface LightPoolTuning {
+  /** Emitters farther than this from the camera (m) never get a light. */
+  maxDistance: number;
+  /** Fires this close to the camera (m) outrank lamps. */
+  fireRange: number;
+  /** How long a light takes to fade in or out when it changes hands (s). */
+  fadeSeconds: number;
+  /** How often the ranking runs (Hz); positions and fades follow every frame. */
+  rankHz: number;
+}
+
+export const lightPool: LightPoolTuning = {
+  maxDistance: 60,
+  fireRange: 20,
+  fadeSeconds: 0.4,
+  rankHz: 10,
+};
+
+/**
+ * The dev overlay's lantern cheat: a warm light carried at the walker's right hand (metres up, to
+ * the side and ahead), for testing the pool until the real lantern (M1.8) brings its own values.
+ * Colour is sRGB hex; intensity in cd.
+ */
+export const devLantern = {
+  color: 0xffcf8a,
+  intensity: 10,
+  range: 14,
+  height: 0.9,
+  side: 0.45,
+  forward: 0.2,
+};
+
 /** Post-processing (Plan Part 5.10), until the Grade and time-of-day key frames drive it (M1). */
 export interface PostFxTuning {
   bloom: { intensity: number; threshold: number; smoothing: number };
