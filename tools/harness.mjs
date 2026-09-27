@@ -10,7 +10,7 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.png': 'image/p
 export function serve(port = 0) {
   return new Promise((res) => {
     const srv = http.createServer((req, rsp) => {
-      const p = join(ROOT, 'dist', decodeURIComponent(req.url.split('?')[0]) === '/' ? 'index.html' : decodeURIComponent(req.url.split('?')[0]));
+      const p = join(ROOT, process.env.OUT || 'dist', decodeURIComponent(req.url.split('?')[0]) === '/' ? 'index.html' : decodeURIComponent(req.url.split('?')[0]));
       try {
         const body = readFileSync(p);
         rsp.writeHead(200, { 'content-type': TYPES[extname(p)] || 'application/octet-stream' });

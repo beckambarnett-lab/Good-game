@@ -631,10 +631,15 @@ kbd {
   pointer-events: auto;
 }
 .tray.collapsed {
-  transform: translateY(calc(100% - 52px));
+  transform: translateY(100%);
 }
-.tray.collapsed #tool-hide {
-  transform: rotate(180deg);
+.tray-toggle {
+  position: absolute;
+  right: 12px;
+  top: -40px;
+}
+.tray.collapsed .tray-toggle {
+  top: -52px;
 }
 .tray-top {
   display: flex;

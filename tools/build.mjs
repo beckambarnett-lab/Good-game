@@ -40,11 +40,12 @@ ${body}
 ${js}
 </script>
 `;
-mkdirSync('dist', { recursive: true });
-writeFileSync('dist/clobberfield.html', page);
+const OUT = process.env.OUT || 'dist';
+mkdirSync(OUT, { recursive: true });
+writeFileSync(`${OUT}/clobberfield.html`, page);
 // The artifact host wraps the page in a skeleton; mirror it for local tests.
 writeFileSync(
-  'dist/index.html',
+  `${OUT}/index.html`,
   `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><style>:root{color-scheme:light;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}body{margin:0;font:14px system-ui}img{max-width:100%}[hidden]{display:none!important}</style></head><body>\n${page}</body></html>`,
 );
-console.log(`built dist/clobberfield.html (${(page.length / 1024).toFixed(0)} KB)`);
+console.log(`built ${OUT}/clobberfield.html (${(page.length / 1024).toFixed(0)} KB)`);

@@ -2,8 +2,9 @@
 export const TUNING = {
   dt: 1 / 60,
   gravity: -18,
-  solverIterations: 8,
+  solverIterations: 7,
   solverIterationsLow: 5,
+  manyUnits: 90, // above this many live units the solver drops to solverIterationsLow
 
   // Field
   fieldHalfX: 36,
@@ -43,6 +44,8 @@ export const TUNING = {
   battleHardCap: 120, // then the side with more remaining value wins
   suddenDrain: 0.03, // fraction of max HP lost per second in sudden death (legendaries half)
   stalemate: 15, // no damage for this long before 90 s starts sudden death early
+
+  maxCorpses: 70,
 
   // AI
   retargetInterval: 0.45,

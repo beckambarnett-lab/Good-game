@@ -426,6 +426,13 @@ export class Game {
     this.renderer.setZones(false);
     this.refreshGhost();
     this.ui.enterBattle();
+    // swoop the free camera down to a lower, closer angle for the fight
+    if (this.rig.mode === 'free') {
+      const portrait = this.camera.aspect < 0.9;
+      this.rig.pos.set(0, portrait ? 26 : 17, portrait ? 36 : 31);
+      this.rig.yaw = Math.PI;
+      this.rig.pitch = portrait ? -0.75 : -0.52;
+    }
     this.audio.play('start');
     this.ui.fight('FIGHT!');
   }
@@ -611,8 +618,11 @@ export class Game {
       if (n >= maxSteps) this.acc = 0;
       const ms = performance.now() - t0;
       this.perf.step = this.perf.step * 0.9 + (n ? ms / n : 0) * 0.1;
-      // adaptive physics quality
-      if (this.perf.step > 9 && sim.world.solver.iterations > T.solverIterationsLow) sim.world.solver.iterations = T.solverIterationsLow;
+      // adaptive physics quality: slow devices drop to fewer solver iterations
+      if (this.perf.step > 9 && !sim.lowPower) {
+        sim.lowPower = true;
+        sim.world.solver.iterations = T.solverIterationsLow;
+      }
     }
     if (sim) {
       const quiet = this.mode === 'title' || this.silent;
@@ -656,10 +666,6 @@ export class Game {
     R.beginFrame();
     if (sim) {
       for (const u of sim.units) {
-        if (u.sinking) {
-          u.sinkT = (u.sinkT || 0) + dt;
-          if (u.sinkT > 2.5) continue;
-        }
         R.drawUnit(u, c);
       }
       for (const p of sim.projectiles) R.drawProjectile(p);

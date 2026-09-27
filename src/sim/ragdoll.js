@@ -77,13 +77,14 @@ function makeBody(mass, mat, group, mask, damping) {
     linearDamping: damping,
     angularDamping: 0.35,
     allowSleep: false,
-    sleepSpeedLimit: 0.25,
-    sleepTimeLimit: 1.2,
+    sleepSpeedLimit: 0.35,
+    sleepTimeLimit: 0.8,
   });
   return b;
 }
 
 const V = (x, y, z) => new CANNON.Vec3(x, y, z);
+let ownerSeq = 0;
 
 // Creates all physics bodies and joints for one unit. Positions are placed around (x, z) with
 // facing `yaw`. Returns a parts object; bodies are already added to the world.
@@ -248,14 +249,16 @@ export function createRagdoll(world, mats, def, x, groundY, z, yaw) {
   }
 
   const list = [];
+  const owner = ++ownerSeq;
   for (const k of ['torso', 'head', 'armL', 'armR', 'legL', 'legR', 'mount', 'mountHead']) {
     if (parts[k]) {
+      parts[k].owner = owner;
       world.addBody(parts[k]);
       list.push(parts[k]);
     }
   }
   for (const c of constraints) {
-    for (const eq of c.equations) eq.setSpookParams(1e7, 4, 1 / 60);
+    c.collideConnected = true; // same-unit pairs are filtered in the broadphase instead
     world.addConstraint(c);
   }
   return { parts, list, constraints, D, M, riderMass, mountMass };

@@ -27,9 +27,12 @@ export class CameraRig {
   reset(side = 0) {
     this.mode = 'free';
     this.follow = null;
-    this.pos.set(0, 25, side === 0 ? 46 : -46);
+    const portrait = this.cam.aspect < 0.9;
+    const s = side === 0 ? 1 : -1;
+    if (portrait) this.pos.set(0, 40, 44 * s);
+    else this.pos.set(0, 30, 37 * s);
     this.yaw = side === 0 ? Math.PI : 0;
-    this.pitch = -0.52;
+    this.pitch = portrait ? -0.98 : -0.9;
   }
 
   rotate(dx, dy) {

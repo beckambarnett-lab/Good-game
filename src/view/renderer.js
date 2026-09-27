@@ -96,6 +96,8 @@ export class Renderer {
   resize(w, h) {
     this.r.setSize(w, h, false);
     this.camera.aspect = w / h;
+    // portrait phones get a wider lens so the field fits across
+    this.camera.fov = w / h < 0.9 ? 70 : 55;
     this.camera.updateProjectionMatrix();
   }
 
@@ -178,9 +180,16 @@ export class Renderer {
     this.terrain = terrain;
 
     // Outer skirt so the world does not end abruptly.
-    const skirt = new THREE.Mesh(new THREE.CircleGeometry(420, 32), new THREE.MeshLambertMaterial({ color: new THREE.Color(th.grassB).multiplyScalar(0.92) }));
+    // Its height is the lowest point on the terrain border, so it never covers the field.
+    let edgeY = 0;
+    if (!flat) {
+      edgeY = Infinity;
+      for (let i = 0; i < nx; i++) edgeY = Math.min(edgeY, heights[i * nz], heights[i * nz + nz - 1]);
+      for (let j = 0; j < nz; j++) edgeY = Math.min(edgeY, heights[j], heights[(nx - 1) * nz + j]);
+    }
+    const skirt = new THREE.Mesh(new THREE.RingGeometry(Math.min(halfW, halfD) - 4, 420, 48, 1), new THREE.MeshLambertMaterial({ color: new THREE.Color(th.grassB).multiplyScalar(0.92) }));
     skirt.rotation.x = -Math.PI / 2;
-    skirt.position.y = flat ? -0.05 : 5.5;
+    skirt.position.y = edgeY - 0.3;
     g.add(skirt);
 
     if (th.ice) {
@@ -248,9 +257,12 @@ export class Renderer {
             'uniform float t; varying vec2 vU; void main(){ vec2 p = vU-0.5; float r = length(p)*2.0; float w = sin(p.x*18.0+t*1.7)*sin(p.y*16.0-t*1.3)*0.5+0.5; vec3 c = mix(vec3(1.0,0.35,0.05), vec3(1.0,0.85,0.25), w*(1.0-r)); c = mix(c, vec3(0.35,0.08,0.03), smoothstep(0.82,1.0,r)); gl_FragColor = vec4(c,1.0); }',
         });
         this.lavaMats.push(mat);
-        const disc = new THREE.Mesh(new THREE.CircleGeometry(h.r + 0.5, 28), mat);
+        const disc = new THREE.Mesh(new THREE.CircleGeometry(h.r + 0.6, 28), mat);
         disc.rotation.x = -Math.PI / 2;
-        disc.position.set(h.x, ground.heightAt(h.x, h.z) + 0.12, h.z);
+        // flat lava surface just below the pool's rim
+        let rimY = Infinity;
+        for (let a = 0; a < 6.28; a += 0.5) rimY = Math.min(rimY, ground.heightAt(h.x + Math.cos(a) * (h.r + 0.8), h.z + Math.sin(a) * (h.r + 0.8)));
+        disc.position.set(h.x, rimY - 0.12, h.z);
         g.add(disc);
         const glow = new THREE.PointLight('#ff7a2a', 1.2, h.r * 4);
         glow.position.set(h.x, 1.5, h.z);
@@ -272,11 +284,15 @@ export class Renderer {
     const zoneMat = new THREE.ShaderMaterial({
       transparent: true,
       depthWrite: false,
-      uniforms: { a: { value: 1 }, redA: { value: 0.35 }, t: { value: 0 } },
+      uniforms: { a: { value: 1 }, redA: { value: 0.35 }, t: { value: 0 }, hx: { value: 34 }, zn: { value: 4 }, zf: { value: 26 } },
       vertexShader: 'varying vec3 vW; void main(){ vec4 w = modelMatrix*vec4(position,1.0); vW = w.xyz; gl_Position = projectionMatrix*viewMatrix*w; }',
       fragmentShader:
-        'uniform float a; uniform float redA; uniform float t; varying vec3 vW; void main(){ float inX = step(abs(vW.x), 34.0); float blue = step(4.0, vW.z)*step(vW.z, 26.0)*inX; float red = step(vW.z, -4.0)*step(-26.0, vW.z)*inX; float edge = 0.0; float bx = min(abs(abs(vW.x)-34.0), min(abs(vW.z-4.0), abs(vW.z-26.0))); float rx = min(abs(abs(vW.x)-34.0), min(abs(vW.z+4.0), abs(vW.z+26.0))); float stripes = step(0.5, fract((vW.x+vW.z)*0.25 + t*0.2)); vec3 c = vec3(0.0); float al = 0.0; if (blue > 0.0) { c = vec3(0.2,0.45,1.0); al = 0.13 + 0.05*stripes + 0.5*(1.0-smoothstep(0.0,0.18,bx)); } if (red > 0.0) { c = vec3(1.0,0.25,0.2); al = (0.13 + 0.05*stripes)*redA/0.35 + 0.5*(1.0-smoothstep(0.0,0.18,rx))*redA/0.35; } gl_FragColor = vec4(c, al*a); }',
+        'uniform float a; uniform float redA; uniform float t; uniform float hx; uniform float zn; uniform float zf; varying vec3 vW; void main(){ float inX = step(abs(vW.x), hx); float blue = step(zn, vW.z)*step(vW.z, zf)*inX; float red = step(vW.z, -zn)*step(-zf, vW.z)*inX; float bx = min(abs(abs(vW.x)-hx), min(abs(vW.z-zn), abs(vW.z-zf))); float rx = min(abs(abs(vW.x)-hx), min(abs(vW.z+zn), abs(vW.z+zf))); float stripes = step(0.5, fract((vW.x+vW.z)*0.25 + t*0.2)); vec3 c = vec3(0.0); float al = 0.0; if (blue > 0.0) { c = vec3(0.2,0.45,1.0); al = 0.13 + 0.05*stripes + 0.5*(1.0-smoothstep(0.0,0.18,bx)); } if (red > 0.0) { c = vec3(1.0,0.25,0.2); al = (0.13 + 0.05*stripes)*redA/0.35 + 0.5*(1.0-smoothstep(0.0,0.18,rx))*redA/0.35; } gl_FragColor = vec4(c, al*a); }',
     });
+    const dz = map.deploy || {};
+    zoneMat.uniforms.hx.value = dz.halfX ?? 34;
+    zoneMat.uniforms.zn.value = dz.near ?? 4;
+    zoneMat.uniforms.zf.value = dz.far ?? 26;
     const zone = new THREE.Mesh(geo, zoneMat);
     zone.position.y = 0.04;
     zone.renderOrder = 2;
@@ -432,6 +448,12 @@ export class Renderer {
           m.multiply(_m2);
         }
       }
+    }
+    if (u.fading || u.sinking) {
+      // sink into the ground
+      const k = Math.min(2.5, u.fadeT || 0) * 0.6;
+      _m2.makeTranslation(0, -k, 0);
+      for (const key in B) B[key].premultiply(_m2);
     }
     const tp = P.torso.position;
     const far = camPos ? Math.hypot(tp.x - camPos.x, tp.y - camPos.y, tp.z - camPos.z) > this.lodDist : false;

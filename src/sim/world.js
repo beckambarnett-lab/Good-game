@@ -59,8 +59,32 @@ export class Sim {
     this.defs = defs;
     this.rng = makeRng(seed);
     this.world = new CANNON.World({ gravity: new CANNON.Vec3(0, T.gravity, 0) });
-    this.world.broadphase = new CANNON.SAPBroadphase(this.world);
+    // Broadphase that also drops pairs from the same unit. That lets every joint use
+    // collideConnected = true, which skips cannon's O(constraints x pairs) filtering loop.
+    const bp = new CANNON.SAPBroadphase(this.world);
+    const pairs = bp.collisionPairs.bind(bp);
+    bp.collisionPairs = (world, p1, p2) => {
+      pairs(world, p1, p2);
+      let w = 0;
+      for (let i = 0; i < p1.length; i++) {
+        const a = p1[i].owner;
+        if (a !== undefined && a === p2[i].owner) continue;
+        p1[w] = p1[i];
+        p2[w] = p2[i];
+        w++;
+      }
+      p1.length = w;
+      p2.length = w;
+    };
+    this.world.broadphase = bp;
     this.world.allowSleep = true;
+    // cannon's ArrayCollisionMatrix is O(bodies^2) per step and only feeds contact events,
+    // which we don't use. A no-op matrix removes ~20% of the step cost at 100+ units.
+    const noMatrix = { get: () => true, set() {}, reset() {}, setNumObjects() {} };
+    this.world.collisionMatrix = noMatrix;
+    this.world.collisionMatrixPrevious = noMatrix;
+    this.world.solver.tolerance = 1e-4;
+    this.lowPower = lowPower;
     this.world.solver.iterations = lowPower ? T.solverIterationsLow : T.solverIterations;
     this.world.defaultContactMaterial.friction = 0.3;
     this.world.defaultContactMaterial.restitution = 0.05;
@@ -115,8 +139,13 @@ export class Sim {
     return u;
   }
 
-  removeUnit(u) {
+  freeze(u) {
+    u.frozen = true;
     removeRagdoll(this.world, u.rag);
+  }
+
+  removeUnit(u) {
+    if (!u.frozen) removeRagdoll(this.world, u.rag);
     const i = this.units.indexOf(u);
     if (i >= 0) this.units.splice(i, 1);
     const a = this.alive[u.team];
@@ -146,7 +175,7 @@ export class Sim {
 
   // Bring a corpse back to life (Wax Remolder). The ragdoll gets up by itself.
   revive(u, frac) {
-    if (u.alive || u.removed) return false;
+    if (u.alive || u.removed || u.frozen) return false;
     u.alive = true;
     u.revived = true;
     u.hp = u.maxHp * frac;
@@ -208,7 +237,30 @@ export class Sim {
         this.emit('fall', p, { unit: u });
         u.die();
       }
-      if (!u.alive) u.deadT += dt;
+      if (!u.alive) {
+        u.deadT += dt;
+        // Settled corpses leave the physics world; the renderer keeps drawing their last pose.
+        if (!u.frozen && u.deadT > 1.5 && (u.deadT > 8 || u.rag.list.every((b) => b.sleepState === 2))) this.freeze(u);
+      }
+    }
+    // Corpse cap: the oldest corpses sink into the ground and leave the physics world.
+    if (this.tick % 30 === 0) {
+      let dead = 0;
+      for (const u of this.units) if (!u.alive && !u.fading) dead++;
+      if (dead > T.maxCorpses) {
+        const old = this.units.filter((u) => !u.alive && !u.fading).sort((a, b) => b.deadT - a.deadT);
+        for (let i = 0; i < dead - T.maxCorpses; i++) {
+          old[i].fading = true;
+          old[i].fadeT = 0;
+        }
+      }
+    }
+    for (let i = this.units.length - 1; i >= 0; i--) {
+      const u = this.units[i];
+      if (u.sinking || u.fading) {
+        u.fadeT = (u.fadeT || 0) + dt;
+        if (u.fadeT > 2.5) this.removeUnit(u);
+      }
     }
     for (let t = 0; t < 2; t++) {
       const a = this.alive[t];
@@ -217,6 +269,10 @@ export class Sim {
       a.length = w;
     }
 
+    if (this.tick % 60 === 0 && !this.lowPower) {
+      const live = this.alive[0].length + this.alive[1].length;
+      this.world.solver.iterations = live > T.manyUnits ? T.solverIterationsLow : T.solverIterations;
+    }
     if (battle) {
       this.time += dt;
       this.healMul = this.sudden ? 0 : this.time > T.tiredHealersTime ? 0.5 : 1;

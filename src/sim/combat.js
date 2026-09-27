@@ -152,6 +152,7 @@ export function canRevive(u, c) {
   return (
     !c.alive &&
     !c.removed &&
+    !c.frozen &&
     c.team === u.team &&
     !c.revived &&
     !c.summoned &&

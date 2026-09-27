@@ -55,10 +55,10 @@ export function fireProjectile(sim, src, target, w, ox, oy, oz) {
   const dist = Math.hypot(tx - ox, tz - oz);
   const baseYaw = Math.atan2(tx - ox, tz - oz);
   for (let i = 0; i < count; i++) {
-    // Aim error: yaw sigma (1-acc)*6deg, pitch sigma (1-acc)*3deg; plus volley spread.
+    // Aim error: yaw sigma (1-acc)*11deg, pitch sigma (1-acc)*5deg; plus volley spread.
     const spread = count > 1 ? ((i - (count - 1) / 2) / Math.max(1, count - 1)) * ((pr.spread || 0) * Math.PI) / 180 : 0;
-    const yawErr = gauss(rng) * (1 - acc) * 0.105 + spread;
-    const pitchErr = gauss(rng) * (1 - acc) * 0.052;
+    const yawErr = gauss(rng) * (1 - acc) * 0.19 + spread;
+    const pitchErr = gauss(rng) * (1 - acc) * 0.087;
     const sp = pr.speed * (1 + rng.range(-0.03, 0.03));
     let vx;
     let vy;

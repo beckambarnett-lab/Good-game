@@ -76,7 +76,10 @@ export class UI {
       g.refreshGhost();
     });
     on('tool-clear', () => g.clearArmy());
-    on('tool-hide', () => $('tray').classList.toggle('collapsed'));
+    on('tool-hide', () => {
+      const c = $('tray').classList.toggle('collapsed');
+      $('tool-hide').textContent = c ? '▴ Units' : '▾ Units';
+    });
     on('tool-side', () => {
       g.placeTeam = 1 - g.placeTeam;
       this.syncTools();
@@ -192,6 +195,7 @@ export class UI {
     $('gold').hidden = false;
     $('tray').hidden = false;
     $('tray').classList.remove('collapsed');
+    $('tool-hide').textContent = '▾ Units';
     this.hideFollow();
     const sandbox = s.kind === 'sandbox';
     $('mode-chip').textContent = sandbox ? `Sandbox · ${g.map.name}` : `${s.level.id.replace('L', 'Level ')} · ${s.level.name}`;
@@ -267,12 +271,14 @@ export class UI {
         $('tool-erase').classList.remove('on');
         for (const k of cards.children) k.classList.toggle('on', k.dataset.id === u.id);
         this.showInfo(u);
+        clearTimeout(this.infoT);
+        if (g.mobile) this.infoT = setTimeout(() => this.showInfo(null), 2500);
       });
       c.addEventListener('mouseenter', () => this.showInfo(u));
-      c.addEventListener('mouseleave', () => this.showInfo(g.selected, true));
+      c.addEventListener('mouseleave', () => this.showInfo(null));
       cards.appendChild(c);
     }
-    this.showInfo(g.selected, true);
+    this.showInfo(null);
     this.updateGold();
   }
 
