@@ -52,6 +52,7 @@ export function updateHazards(sim, dt) {
         if (d > h.r + u.radius) continue;
         const L = d || 1;
         const m = u.mass;
+        if (u.frozen) sim.unfreeze(u); // thaw settled corpses so they get tossed too
         if (u.alive) {
           u.launched = true;
           u.settleT = 0;

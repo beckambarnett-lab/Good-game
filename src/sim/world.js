@@ -144,6 +144,20 @@ export class Sim {
     removeRagdoll(this.world, u.rag);
   }
 
+  // Put a frozen corpse back into the physics world (e.g. a geyser erupts under it).
+  unfreeze(u) {
+    if (!u.frozen || u.removed) return;
+    u.frozen = false;
+    u.deadT = 1.5;
+    for (const b of u.rag.list) {
+      b.velocity.set(0, 0, 0);
+      b.angularVelocity.set(0, 0, 0);
+      this.world.addBody(b);
+      b.wakeUp();
+    }
+    for (const c of u.rag.constraints) if (c && c !== u.p.saddle) this.world.addConstraint(c);
+  }
+
   removeUnit(u) {
     if (!u.frozen) removeRagdoll(this.world, u.rag);
     const i = this.units.indexOf(u);
