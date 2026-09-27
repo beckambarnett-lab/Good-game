@@ -352,20 +352,14 @@ export class Unit {
 
   upright(body, desUp, b, ieMul, kp = T.uprightKp, kd = T.uprightKd) {
     const up = body.quaternion.vmult(tA.set(0, 1, 0), tA);
-    // axis = up x desUp
+    // desired angular acceleration: spring toward desUp, damp tilting spin
     const ax = up.y * desUp.z - up.z * desUp.y;
     const ay = up.z * desUp.x - up.x * desUp.z;
     const az = up.x * desUp.y - up.y * desUp.x;
     const w = body.angularVelocity;
     const wd = w.x * desUp.x + w.y * desUp.y + w.z * desUp.z;
-    const wx = w.x - wd * desUp.x;
-    const wy = w.y - wd * desUp.y;
-    const wz = w.z - wd * desUp.z;
-    const I = Math.min(body.inertia.x, body.inertia.z) * ieMul;
-    const k = I * b;
-    body.torque.x += k * (kp * ax - kd * wx);
-    body.torque.y += k * (kp * ay - kd * wy);
-    body.torque.z += k * (kp * az - kd * wz);
+    tB.set(kp * ax - kd * (w.x - wd * desUp.x), kp * ay - kd * (w.y - wd * desUp.y), kp * az - kd * (w.z - wd * desUp.z));
+    applyAccel(body, tB, ieMul * b);
   }
 
   yawTorque(body, b) {
@@ -377,8 +371,8 @@ export class Unit {
     while (e < -Math.PI) e += 2 * Math.PI;
     if (e > 1.2) e = 1.2;
     if (e < -1.2) e = -1.2;
-    const I = body.inertia.y * 1.6;
-    body.torque.y += I * b * (T.yawKp * e - T.yawKd * body.angularVelocity.y);
+    tB.set(0, T.yawKp * e - T.yawKd * body.angularVelocity.y, 0);
+    applyAccel(body, tB, 1.6 * b);
   }
 
   driveLimb(limb, parent, des, b, kmul) {
@@ -423,4 +417,22 @@ export function wrapAngle(a) {
   while (a > Math.PI) a -= 2 * Math.PI;
   while (a < -Math.PI) a += 2 * Math.PI;
   return a;
+}
+
+// Torque = R * I_local * R^T * alpha: applying a desired angular acceleration through the body's
+// real inertia tensor keeps the PD loops stable on bodies with one tiny axis (narrow mounts).
+const _qi = new CANNON.Quaternion();
+const _lv = new CANNON.Vec3();
+function applyAccel(body, alpha, k) {
+  const q = body.quaternion;
+  _qi.set(-q.x, -q.y, -q.z, q.w);
+  _qi.vmult(alpha, _lv);
+  const I = body.inertia;
+  _lv.x *= I.x * k;
+  _lv.y *= I.y * k;
+  _lv.z *= I.z * k;
+  q.vmult(_lv, _lv);
+  body.torque.x += _lv.x;
+  body.torque.y += _lv.y;
+  body.torque.z += _lv.z;
 }

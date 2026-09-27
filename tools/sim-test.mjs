@@ -35,17 +35,19 @@ function battle(opts) {
           if (u.alive && u.p.torso.position.y < killY - 1) inv.belowKill++;
         }
       }
-      // stuck: moved < 0.5 m in 8 s while wanting to reach a target, not attacking
-      if (n % 480 === 0) {
+      // stuck: wanted to reach a far target for the whole last 8 s (sampled every 2 s) but moved < 0.5 m
+      if (n % 120 === 0) {
         let stuck = 0;
         let live = 0;
         for (const u of sim.units) {
           if (!u.alive) continue;
           live++;
-          const prev = track.get(u);
-          const wants = u.target && u.target.alive && u.target.team !== u.team && !u.atk && Math.hypot(u.target.x - u.x, u.target.z - u.z) > u.def.weapon.range + 2;
-          if (prev && wants && Math.hypot(u.x - prev.x, u.z - prev.z) < 0.5) stuck++;
-          track.set(u, { x: u.x, z: u.z });
+          const wants = !!(u.target && u.target.alive && u.target.team !== u.team && !u.atk && Math.hypot(u.target.x - u.x, u.target.z - u.z) > u.def.weapon.range + 2);
+          const h = track.get(u) || [];
+          h.push({ x: u.x, z: u.z, wants });
+          if (h.length > 5) h.shift();
+          track.set(u, h);
+          if (h.length === 5 && h.every((q) => q.wants) && Math.hypot(u.x - h[0].x, u.z - h[0].z) < 0.5) stuck++;
         }
         if (live > 4) inv.stuckMax = Math.max(inv.stuckMax, stuck / live);
       }
