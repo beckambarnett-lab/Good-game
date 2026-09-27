@@ -2,6 +2,7 @@
 export const TUNING = {
   dt: 1 / 60,
   gravity: -18,
+  projGravity: 9.82, // projectiles fly on real-world gravity (scaled per weapon)
   solverIterations: 7,
   solverIterationsLow: 5,
   manyUnits: 90, // above this many live units the solver drops to solverIterationsLow

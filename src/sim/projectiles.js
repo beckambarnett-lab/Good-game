@@ -28,13 +28,13 @@ export function solveLaunch(dx, dy, dz, speed, g, high) {
 // Max range of a launcher on flat ground (used by the AI to know when to close in).
 export function ballisticRange(pr) {
   if (pr.flat || pr.boomerang) return Infinity;
-  const g = -T.gravity * (pr.gravity ?? 1);
+  const g = T.projGravity * (pr.gravity ?? 1);
   return (pr.speed * pr.speed) / g;
 }
 
 export function fireProjectile(sim, src, target, w, ox, oy, oz) {
   const pr = w.proj;
-  const g = pr.flat || pr.boomerang ? 0 : -T.gravity * (pr.gravity ?? 1);
+  const g = pr.flat || pr.boomerang ? 0 : T.projGravity * (pr.gravity ?? 1);
   const high = pr.arc === 'high';
   const count = pr.count || 1;
   const rng = sim.rng;
@@ -46,9 +46,19 @@ export function fireProjectile(sim, src, target, w, ox, oy, oz) {
   const aimY = tp.y;
   let sol = solveLaunch(tx - ox, aimY - oy, tz - oz, pr.speed, g || 1, high);
   const lead = pr.lead ?? 0.8;
+  const minD = Math.max(w.minRange || 0, 4);
   for (let k = 0; k < 2; k++) {
     tx = tp.x + tv.x * sol.flight * lead;
     tz = tp.z + tv.z * sol.flight * lead;
+    // don't lead a charging target past the point where it will stop (it can't run through us)
+    const dx = tx - ox;
+    const dz = tz - oz;
+    const d = Math.hypot(dx, dz);
+    const d0 = Math.hypot(tp.x - ox, tp.z - oz);
+    if (d < minD && d0 > minD) {
+      tx = ox + (dx / (d || 1)) * minD;
+      tz = oz + (dz / (d || 1)) * minD;
+    }
     sol = solveLaunch(tx - ox, aimY - oy, tz - oz, pr.speed, g || 1, high);
   }
   const acc = pr.acc ?? 0.7;
@@ -134,7 +144,10 @@ function stepProjectile(sim, p, dt) {
   p.x += p.vx * dt;
   p.y += p.vy * dt;
   p.z += p.vz * dt;
-  if (p.age > p.life || p.y < T.killY) return false;
+  if (p.age > p.life || p.y < T.killY) {
+    if (p.boom && p.src) p.src.boomOut = 0;
+    return false;
+  }
 
   // Unit hits (enemies only).
   const cand = sim.grid.query(p.x, p.z, 2.5 + p.r);
@@ -170,7 +183,10 @@ function stepProjectile(sim, p, dt) {
     if (p.cloud) spawnCloud(sim, p);
     return false;
   }
-  if (p.boom) return !p.done;
+  if (p.boom) {
+    if (p.done && p.src) p.src.boomOut = 0;
+    return !p.done;
+  }
 
   // Ground (terrain + bridges).
   const gy = sim.ground.surfaceAt(p.x, p.z);
@@ -226,8 +242,9 @@ function steerBoomerang(sim, p, dt) {
   const d = Math.hypot(dx, dy, dz);
   if (d < 1.2 + s.radius) {
     p.done = true;
-    s.cool = Math.min(s.cool, 0.3);
-    s.boomOut = false;
+    // the throw's cooldown starts on the catch
+    s.cool = Math.max(s.cool, Math.min(4, s.def.weapon.cooldown * 0.5));
+    s.boomOut = 0;
     sim.emit('catch', t, { unit: s });
     return;
   }

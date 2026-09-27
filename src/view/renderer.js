@@ -475,7 +475,7 @@ export class Renderer {
       if (fl > 0 || dead) {
         _c.copy(c);
         if (dead) _c.lerp(_dark, 0.3);
-        if (fl > 0) _c.lerp(_white, fl * 0.85);
+        if (fl > 0) _c.lerp(_white, fl * 0.65);
         c = _c;
       }
       this.push(p.shape, _m, c);

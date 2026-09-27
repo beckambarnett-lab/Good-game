@@ -56,7 +56,7 @@ export class Unit {
     this.retargetT = sim.rng.next() * T.retargetInterval;
     this.cool = 0.3 + sim.rng.next() * 0.6;
     this.atk = null; // current attack {phase, t, target}
-    this.charge = 0; // cavalry charge readiness 0..1
+    this.charge = 1; // cavalry charge readiness 0..1 (starts ready for the opening charge)
     this.stuckT = 0;
     this.lastX = x;
     this.lastZ = z;
@@ -224,7 +224,7 @@ export class Unit {
     this.healBucket = Math.min(T.healCap, this.healBucket + T.healCap * dt);
     const pas = this.def.passive;
     if (pas && pas.regen && this.hp < this.maxHp) this.heal(pas.regen * dt, null);
-    if (this.flash > 0) this.flash = Math.max(0, this.flash - dt * 5);
+    if (this.flash > 0) this.flash = Math.max(0, this.flash - dt * 7);
     if (this.burnT <= 0) this.onFireEmit = false;
     if (this.burnT > 0) {
       this.burnT -= dt;

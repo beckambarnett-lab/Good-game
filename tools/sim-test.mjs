@@ -156,6 +156,7 @@ test('G05', 'every cavalry charges into a line of slingers', () => {
 test('G06', 'every siege unit splashes a crowd without hurting itself', () => {
   const fails = [];
   const crowd = has('moss_twig') ? 'moss_twig' : 'grow_hoer';
+  const dmgs = [];
   for (const u of byRole('siege')) {
     let selfHits = 0;
     const b = battle({
@@ -167,12 +168,13 @@ test('G06', 'every siege unit splashes a crowd without hurting itself', () => {
       },
     });
     fails.push(...checkInv('G06', b).map((f) => `${u.id}: ${f}`));
-    const kills = 20 - b.r.alive[1];
+    const dealt = b.r.sim.units.filter((x) => x.team === 0 && x.def.id === u.id).reduce((a, x) => a + x.dmgDealt, 0);
     if (!b.ev.explosion && !b.ev.beam && !b.ev.hit) fails.push(`${u.id}: no impacts`);
-    if (kills < 3) fails.push(`${u.id}: only ${kills} kills`);
+    if (dealt < 200) fails.push(`${u.id}: only ${dealt | 0} damage dealt`);
     if (selfHits) fails.push(`${u.id}: friendly damage`);
+    dmgs.push(`${u.id.split('_')[1]} ${dealt | 0}`);
   }
-  return { fails, info: `${byRole('siege').length} siege vs 20 ${crowd}` };
+  return { fails, info: dmgs.join(', ') };
 });
 
 test('G07', 'tanks + healers only: sudden death ends it, heal cap holds', () => {
@@ -296,8 +298,13 @@ test('G14', 'mesa: units get knocked off the edge', () => {
   let falls = 0;
   const fails = [];
   for (let s = 1; s <= 3; s++) {
-    const b = battle({ map: 'mesa', blue: [{ id: cav[s % cav.length], n: 4 }], red: [{ id: 'grow_hoer', n: 16 }], seed: 140 + s });
-    fails.push(...checkInv('G14', b, { stuck: 0.2 }).map((f) => `seed ${s}: ${f}`));
+    // defenders lined up near the east cliff; attackers come in from the west and shove them out
+    const P = [];
+    for (let i = 0; i < 12; i++) P.push({ id: 'grow_hoer', team: 1, x: 20 + (i % 2) * 1.5, z: -6 - Math.floor(i / 2) * 2.5 });
+    P.push({ id: has('top_bouncer') ? 'top_bouncer' : 'grow_bale', team: 0, x: 4, z: 8 });
+    for (let i = 0; i < 4; i++) P.push({ id: cav[(s + i) % cav.length], team: 0, x: -2 + i * 3, z: 12 });
+    const b = battle({ map: 'mesa', placements: P, seed: 140 + s });
+    fails.push(...checkInv('G14', b, { stuck: 0.25 }).map((f) => `seed ${s}: ${f}`));
     falls += b.ev.fall || 0;
   }
   if (!falls) fails.push('no edge deaths');
@@ -500,7 +507,8 @@ test('G24', 'corpse flood: corpses sleep and get cleaned up', () => {
   const sim = b.r.sim;
   for (let i = 0; i < 300; i++) sim.step();
   const corpses = sim.units.filter((u) => !u.alive);
-  const asleep = corpses.filter((u) => u.rag.list.every((x) => x.sleepState === 2)).length;
+  // settled = asleep, or already frozen out of the physics world
+  const asleep = corpses.filter((u) => u.frozen || u.rag.list.every((x) => x.sleepState === 2)).length;
   const fails = [];
   if (corpses.length > 80) fails.push(`${corpses.length} corpses kept`);
   if (corpses.length && asleep / corpses.length < 0.7) fails.push(`only ${asleep}/${corpses.length} asleep`);

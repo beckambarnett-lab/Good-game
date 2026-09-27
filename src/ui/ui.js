@@ -441,8 +441,11 @@ export class UI {
       const st = g.progress.stars[L.id] || 0;
       const b = document.createElement('button');
       b.className = `lvl${open ? '' : ' locked'}`;
-      const num = L.bonus ? `BONUS · needs ${L.needStars}★` : `LEVEL ${i + 1}${L.boss ? ' · BOSS' : ''}`;
-      b.innerHTML = `<span class="num">${num}</span><span class="name">${L.name}</span><span class="meta">${MAPS[L.map].name} · ${fmt(L.budget)} gold${L.legendary ? ' · 1 legendary' : ''}</span><span class="stars">${[0, 1, 2].map((k) => `<i class="star${k < st ? ' on' : ''}"></i>`).join('')}</span>`;
+      const num = L.bonus ? `BONUS · ${L.needStars}★` : `LEVEL ${i + 1}${L.boss ? ' · BOSS' : ''}`;
+      const foes = [...new Set(L.enemy.map((e) => UNITS[e.u] && UNITS[e.u].faction).filter(Boolean))];
+      const dots = foes.map((f) => `<i class="fdot" style="background:${(FACTIONS.find((x) => x.id === f) || {}).color}"></i>`).join('');
+      b.innerHTML = `<span class="num">${num}</span><span class="name">${L.name}</span><span class="meta">${MAPS[L.map].name} · ${fmt(L.budget)} gold${L.legendary ? ' · 1 legendary' : ''}</span><span class="stars">${[0, 1, 2].map((k) => `<i class="star${k < st ? ' on' : ''}"></i>`).join('')}<span class="foes">${dots}</span></span>`;
+      b.style.borderTop = `6px solid ${MAPS[L.map].theme.grassA}`;
       b.addEventListener('click', () => {
         if (!open) {
           this.toast(L.bonus ? `Collect ${L.needStars} stars to unlock` : 'Win the previous level first');

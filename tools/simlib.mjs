@@ -47,6 +47,7 @@ export function runBattle({ map = 'meadow', blue, red, seed = 1, maxT = 130, onS
     if (ms > maxStepMs) maxStepMs = ms;
     steps++;
     if (onStep && onStep(sim, steps) === false) break;
+    if (sim.events.length > 4000) sim.events.length = 0;
   }
   return {
     sim,

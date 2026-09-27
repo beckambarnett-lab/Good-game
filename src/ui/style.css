@@ -1037,3 +1037,15 @@ select.tool {
     animation: none;
   }
 }
+.lvl .foes {
+  margin-left: auto;
+  display: flex;
+  gap: 3px;
+  align-items: center;
+}
+.fdot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid var(--line);
+}

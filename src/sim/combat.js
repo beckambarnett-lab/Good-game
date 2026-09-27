@@ -1,6 +1,6 @@
 import * as CANNON from 'cannon-es';
 import { addZone } from './zones.js';
-import { applyEffect, areaBlast, fireProjectile, pullToward } from './projectiles.js';
+import { applyEffect, areaBlast, ballisticRange, fireProjectile, pullToward } from './projectiles.js';
 
 const tH = new CANNON.Vec3();
 
@@ -56,15 +56,19 @@ export function gap(u, t) {
 
 // Weapon reach, including the high-ground bonus for ranged weapons (+0.5 m per metre, max +4).
 export function reach(u, w, t) {
-  if (!t || w.range < 6) return w.range;
+  let r = w.range;
+  // a launcher can't shoot further than physics allows (0.95 of flat-ground max range)
+  if (w.proj && !w._maxR) w._maxR = ballisticRange(w.proj) * 0.95;
+  if (w._maxR) r = Math.min(r, w._maxR);
+  if (!t || w.range < 6) return r;
   const dh = u.base.position.y - t.base.position.y;
-  return w.range + Math.min(4, Math.max(0, dh * 0.5));
+  return r + Math.min(4, Math.max(0, dh * 0.5));
 }
 
 export function updateCombat(sim, u, dt) {
   const w = u.def.weapon;
   if (!u.alive) return;
-  const disabled = u.launched || u.stunT > 0 || !u.grounded;
+  const disabled = u.launched || u.stunT > 0 || (!u.grounded && !w.hop);
   if (disabled) {
     if (u.atk && u.atk.phase === 0) u.atk = null;
     if (!u.atk) u.pose = null;
@@ -128,7 +132,7 @@ export function updateCombat(sim, u, dt) {
     const g = gap(u, t);
     if (g > reach(u, w, t) || g < (w.minRange || 0)) return;
   }
-  if (w.kind === 'boomerang' && u.boomOut) return;
+  if (u.boomOut && w.proj && w.proj.boomerang && sim.time - u.boomOut < 6) return;
   u.atk = { phase: 0, t: 0, target: t, tick: 0 };
   if (w.hop) {
     u.base.velocity.y += w.hop;
@@ -280,7 +284,7 @@ function resolveAttack(sim, u, a, w) {
         tH.vadd(base.position, tH);
         fireProjectile(sim, u, t, w, tH.x, tH.y, tH.z);
       } else fireProjectile(sim, u, t, w, tH.x, oy, tH.z);
-      if (w.proj && w.proj.boomerang) u.boomOut = true;
+      if (w.proj && w.proj.boomerang) u.boomOut = sim.time || 0.001;
       break;
     }
     case 'beam':
