@@ -46,19 +46,9 @@ export function fireProjectile(sim, src, target, w, ox, oy, oz) {
   const aimY = tp.y;
   let sol = solveLaunch(tx - ox, aimY - oy, tz - oz, pr.speed, g || 1, high);
   const lead = pr.lead ?? 0.8;
-  const minD = Math.max(w.minRange || 0, 4);
   for (let k = 0; k < 2; k++) {
     tx = tp.x + tv.x * sol.flight * lead;
     tz = tp.z + tv.z * sol.flight * lead;
-    // don't lead a charging target past the point where it will stop (it can't run through us)
-    const dx = tx - ox;
-    const dz = tz - oz;
-    const d = Math.hypot(dx, dz);
-    const d0 = Math.hypot(tp.x - ox, tp.z - oz);
-    if (d < minD && d0 > minD) {
-      tx = ox + (dx / (d || 1)) * minD;
-      tz = oz + (dz / (d || 1)) * minD;
-    }
     sol = solveLaunch(tx - ox, aimY - oy, tz - oz, pr.speed, g || 1, high);
   }
   const acc = pr.acc ?? 0.7;
