@@ -58,3 +58,21 @@ _(filled in below as rounds complete)_
 - Supports cost 45–55 with bigger heals and longer reach.
 - Lobbed siege: accuracy raised from 0.5 to 0.75, cost 110–120.
 - Legendary HP roughly halved, cost up about 10–15%.
+- **Result (round 3):** 9 out of band (Gus and Oakheart 83%; buffers, the Remolder and lobbed siege low).
+
+### Rounds 4–7 (balance iterations)
+- Buffers got stronger: haste +40% move / +35% attack rate, might +30% damage / −25% damage taken.
+- Lobbed siege fires faster (cooldown 4–4.5 s) and costs 55–65.
+- The Barrel Mortar's speed was restored to 22. Its lob hung for ~5 s after the gravity change.
+- Gus and Oakheart got more HP cuts and higher costs.
+- Borderline melee got a little cheaper.
+- **Round 7:** 0 units outside the band.
+
+### Round 8 (verification)
+- **Physics fix:** balance torques are now applied through each body's real inertia tensor. Narrow mounts (the Unicycle) could spin up to 49,000 m/s when tilted, because the old code used the largest inertia on every axis.
+- **Physics fix:** geysers now thaw frozen corpses and toss them. Before, they stacked velocity on bodies that were outside the physics world.
+- **Stuck metric:** a unit now counts as stuck only if it wanted to move for the whole 8 s window.
+- **Sim tests:** 24/24.
+- **e2e:** 6/6. 112-unit battle at 7.1 ms per sim step, 20 draw calls.
+- **Balance:** re-run on fresh seeds (base 5000) after the fix. 0 units out of band, the second clean round in a row.
+- **Blind review round 2:** see below.
