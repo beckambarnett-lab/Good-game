@@ -57,7 +57,7 @@ export class CameraRig {
 
   pan(dx, dy) {
     if (this.mode === 'follow') return;
-    const r = new THREE.Vector3(Math.cos(this.yaw), 0, -Math.sin(this.yaw));
+    const r = new THREE.Vector3(-Math.cos(this.yaw), 0, Math.sin(this.yaw)); // screen-right
     const f = new THREE.Vector3(Math.sin(this.yaw), 0, Math.cos(this.yaw));
     const k = Math.max(0.02, this.pos.y * 0.0025);
     this.pos.addScaledVector(r, -dx * k * 1.6);
@@ -118,7 +118,7 @@ export class CameraRig {
       cam.lookAt(this.flook);
     } else {
       const f = this.forward();
-      const r = new THREE.Vector3(Math.cos(this.yaw), 0, -Math.sin(this.yaw));
+      const r = new THREE.Vector3(-Math.cos(this.yaw), 0, Math.sin(this.yaw)); // screen-right
       const acc = new THREE.Vector3();
       const K = this.keys;
       if (K.has('KeyW') || K.has('ArrowUp')) acc.add(f);
