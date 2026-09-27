@@ -245,7 +245,8 @@ export class UI {
       const usable = this.factionUsable(f.id);
       const b = document.createElement('button');
       b.className = `tab${f.id === this.tab ? ' on' : ''}`;
-      b.innerHTML = `<i class="dot" style="background:${f.color}"></i>${f.short || f.name}`;
+      b.innerHTML = `<i class="dot" style="background:${f.color}"></i>${f.short || f.name}<small class="rank">R${FACTIONS.indexOf(f) + 1}</small>`;
+      b.title = `Rank ${FACTIONS.indexOf(f) + 1}: higher ranks cost more and hit harder`;
       if (!usable) {
         b.disabled = true;
         b.style.opacity = 0.35;
@@ -298,8 +299,8 @@ export class UI {
     const w = u.weapon;
     const dps = w.damage ? (w.damage * (w.proj && w.proj.count ? w.proj.count : 1)) / w.cooldown : 0;
     const bars = [
-      ['HP', u.hp, 9000, fmt(u.hp)],
-      ['Damage', dps || (w.heal ? w.heal / w.cooldown : 0), 80, w.kind.startsWith('heal') ? `+${fmt(w.heal)} heal` : `${fmt(w.damage)}${w.proj && w.proj.count > 1 ? `×${w.proj.count}` : ''}`],
+      ['HP', u.hp, 50000, fmt(u.hp)],
+      ['Damage', dps || (w.heal ? w.heal / w.cooldown : 0), 700, w.kind.startsWith('heal') ? `+${fmt(w.heal)} heal` : `${fmt(w.damage)}${w.proj && w.proj.count > 1 ? `×${w.proj.count}` : ''}`],
       ['Speed', u.speed, 9, u.speed.toFixed(1)],
       ['Range', w.range, 50, `${w.range} m`],
       ['Mass', u.mass, 1500, `${u.mass} kg`],

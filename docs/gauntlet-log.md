@@ -76,3 +76,17 @@ _(filled in below as rounds complete)_
 - **e2e:** 6/6. 112-unit battle at 7.1 ms per sim step, 20 draw calls.
 - **Balance:** re-run on fresh seeds (base 5000) after the fix. 0 units out of band, the second clean round in a row.
 - **Blind review round 2:** see below.
+
+### Faction progression (user request)
+- Factions are ranked in campaign unlock order: Growers R1 through Waxwick R8. See `src/data/progression.js`.
+- Price multiplier per rank is k = 0.5 × 1.6^(rank−1), running from ×0.5 to ×13.4.
+- HP, damage, heals, burns, regen and death blasts scale by k^0.9. Knockback and mass are unchanged.
+- The heal cap and hazard damage scale with rank too.
+- **Why the 0.9 exponent:** at a full k-for-k scale, higher ranks won every equal-gold faction fight, since a few big units beat a swarm. At 0.8, lower ranks sometimes flipped it. At 0.9, higher ranks win most faction-vs-faction fights with some upsets. This is the intended "better and more expensive" (`tools/faction-duel.mjs`).
+- **Campaign budgets** climb geometrically: L01 $240, L05 $880, L10 $4,250, L15 $17,500, L20 $100,000.
+  - Enemy group sizes were scaled so each army fits its budget.
+  - L15 and L19 are capped at 1.4× the enemy value, because unit caps stop those armies from growing.
+  - Pars were recomputed.
+- **Other changes:** the sandbox starts with $20,000; the title-screen demo battle picks units by slots, not gold.
+- **Tournament:** it switches progression off (`globalThis.CLOBBER_NO_RANKS`), so the 20–80% band is measured within a rank.
+- **Checks:** sim tests 24/24; e2e 6/6.

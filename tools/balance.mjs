@@ -6,6 +6,9 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { cpus } from 'node:os';
 import { Worker, isMainThread, parentPort, workerData } from 'node:worker_threads';
 
+// Balance is measured within a rank: faction progression multipliers are switched off.
+globalThis.CLOBBER_NO_RANKS = true;
+
 if (!isMainThread) {
   const { runBattle } = await import('./simlib.mjs');
   parentPort.on('message', (job) => {

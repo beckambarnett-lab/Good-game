@@ -1,5 +1,6 @@
 // Roster registry: every faction file exports a FactionDef { id, name, blurb, color, units, projLooks? }.
 import { BALANCE } from './balance.js';
+import { applyRank } from './progression.js';
 import { FACTION as briny } from './factions/briny.js';
 import { FACTION as cog } from './factions/cog.js';
 import { FACTION as grow } from './factions/grow.js';
@@ -38,5 +39,9 @@ for (const id in BALANCE) {
     } else u[k] = v;
   }
 }
+
+// Faction progression (ranked factions: cheaper/weaker low ranks, pricier/stronger high ranks).
+// The balance tournament switches it off to measure balance within a rank.
+if (!globalThis.CLOBBER_NO_RANKS) for (const u of Object.values(UNITS)) applyRank(u);
 
 export const ROLE_ORDER = ['melee', 'ranged', 'tank', 'cavalry', 'siege', 'support', 'legendary'];

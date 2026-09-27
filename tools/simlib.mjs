@@ -65,7 +65,7 @@ export function runBattle({ map = 'meadow', blue, red, seed = 1, maxT = 130, onS
 
 // Equal-gold matchup: as many of each as fit in `gold` (at least one).
 export function equalGold(a, b, gold) {
-  const na = Math.max(1, Math.floor(gold / UNITS[a].cost));
-  const nb = Math.max(1, Math.floor(gold / UNITS[b].cost));
+  const na = Math.max(1, Math.min(80, Math.floor(gold / UNITS[a].cost)));
+  const nb = Math.max(1, Math.min(80, Math.floor(gold / UNITS[b].cost)));
   return { blue: [{ id: a, n: na }], red: [{ id: b, n: nb }] };
 }

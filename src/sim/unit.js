@@ -69,7 +69,7 @@ export class Unit {
     this.lastHitBy = null;
     this.spin = 0;
     this.cool2 = 1 + sim.rng.next();
-    this.healBucket = T.healCap;
+    this.healBucket = T.healCap * (def.rankMul || 1);
     this.hasteT = 0;
     this.mightT = 0;
     this.slowAmt = 0;
@@ -221,7 +221,8 @@ export class Unit {
     if (this.buffT > 0) this.buffT -= dt;
     if (this.hasteT > 0) this.hasteT -= dt;
     if (this.mightT > 0) this.mightT -= dt;
-    this.healBucket = Math.min(T.healCap, this.healBucket + T.healCap * dt);
+    const cap = T.healCap * (this.def.rankMul || 1);
+    this.healBucket = Math.min(cap, this.healBucket + cap * dt);
     const pas = this.def.passive;
     if (pas && pas.regen && this.hp < this.maxHp) this.heal(pas.regen * dt, null);
     if (this.flash > 0) this.flash = Math.max(0, this.flash - dt * 7);

@@ -19,9 +19,9 @@ export function updateHazards(sim, dt) {
           }
           continue;
         }
-        u.hit(h.dps * dt, 0, 0, 0, null);
+        u.hit(h.dps * dt * (u.def.rankMul || 1), 0, 0, 0, null);
         u.burnT = Math.max(u.burnT, h.burnTime || 3);
-        u.burnDps = Math.max(u.burnDps, h.burn || 6);
+        u.burnDps = Math.max(u.burnDps, (h.burn || 6) * (u.def.rankMul || 1));
         const k = sim.hzT.get(u) || 0;
         if (sim.time - k > 0.5 && u.alive) {
           sim.hzT.set(u, sim.time);
@@ -56,7 +56,7 @@ export function updateHazards(sim, dt) {
         if (u.alive) {
           u.launched = true;
           u.settleT = 0;
-          u.hit(h.dmg || 20, 0, 0, 0, null);
+          u.hit((h.dmg || 20) * (u.def.rankMul || 1), 0, 0, 0, null);
           sim.emit('launch', t, { mag: m * h.dvUp, unit: u });
         }
         for (const b of u.rag.list) {

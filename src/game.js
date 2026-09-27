@@ -172,21 +172,22 @@ export class Game {
     const legends = UNIT_LIST.filter((u) => u.role === 'legendary');
     for (let team = 0; team < 2; team++) {
       const zone = deployZone(this.map, team);
-      let gold = 2200;
+      // unit slots rather than gold: faction ranks make prices vary 25x
+      let slots = 18;
       if (legends.length && rng.next() < 0.5) {
         const L = rng.pick(legends);
         this.army.push({ id: L.id, team, x: rng.range(-8, 8), z: team === 0 ? 18 : -18 });
-        gold -= 1200;
+        slots -= 8;
       }
       let tries = 0;
-      while (gold > 0 && tries++ < 60) {
+      while (slots > 0 && tries++ < 60) {
         const d = rng.pick(pool);
         if (!d) break;
         const x = rng.range(zone.x0 * 0.6, zone.x1 * 0.6);
         const z = rng.range(zone.z0 + 4, zone.z1 - 4) * (team === 0 ? 1 : 1);
         if (this.map.noDeploy && this.map.noDeploy(x, z)) continue;
         this.army.push({ id: d.id, team, x, z });
-        gold -= d.cost;
+        slots--;
       }
     }
     this.buildSim();
@@ -214,7 +215,7 @@ export class Game {
 
   startSandbox(mapId) {
     const prev = this.session && this.session.kind === 'sandbox' ? this.session : null;
-    this.session = { kind: 'sandbox', budget: prev ? prev.budget : 3000, unlimited: prev ? prev.unlimited : false, factions: null, legendary: 99 };
+    this.session = { kind: 'sandbox', budget: prev ? prev.budget : 20000, unlimited: prev ? prev.unlimited : false, factions: null, legendary: 99 };
     this.setMap(mapId || (prev ? this.mapId : 'meadow'));
     if (!prev) this.army = [];
     this.placeTeam = 0;

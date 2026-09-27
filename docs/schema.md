@@ -59,7 +59,9 @@ Common: `kind, damage, range, minRange, cooldown, windup (0.3), recover (0.3), k
 | `revive` | `reviveHp` (0.4) | revives a fresh ally corpse (non-mounted, cost ≤ 400, once each, 3 per reviver) |
 | `explode` | `radius` | suicide blast |
 
-Global rules: heal cap 15 HP/s per unit; healing ×0.5 after 60 s; sudden death at 90 s (no healing, everyone drains 3%/s); hard end 120 s.
+Faction ranks (src/data/progression.js) scale cost by k and HP/damage/heals by k^0.9 after this file is loaded; write stats at rank-neutral scale.
+
+Global rules: heal cap 25 HP/s × rank power per unit; healing ×0.5 after 60 s; sudden death at 90 s (no healing, everyone drains 3%/s); hard end 120 s.
 
 `anim`: `swing, swing2 (two-handed), thrust, lance, throw, aim (both arms forward, held), bow, raise, point, slam, spin, heal, none`.
 

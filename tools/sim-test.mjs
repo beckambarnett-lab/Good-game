@@ -87,7 +87,8 @@ function test(id, desc, fn) {
 }
 
 const byRole = (role) => UNIT_LIST.filter((u) => u.role === role);
-const nOf = (id, gold) => Math.max(1, Math.floor(gold / UNITS[id].cost));
+// equal-gold counts, capped so rank-scaled legendaries don't face thousands of units
+const nOf = (id, gold) => Math.max(1, Math.min(60, Math.floor(gold / UNITS[id].cost)));
 
 // ---------------------------------------------------------------- scenarios
 test('G01', '1 v 1 Hoe Hand duel ends cleanly', () => {
@@ -321,7 +322,7 @@ test('G15', 'hills: ranged on high ground gets bonus range', () => {
 function autoArmy(gold, rng, pool) {
   const out = [];
   let g = gold;
-  for (let k = 0; k < 400 && g > 0; k++) {
+  for (let k = 0; k < 400 && g > 0 && out.length < 70; k++) {
     const d = rng.pick(pool);
     if (d.cost <= g) {
       out.push({ id: d.id, n: 1 });
