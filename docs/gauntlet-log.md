@@ -24,3 +24,37 @@ Tools: `npm test` (tools/sim-test.mjs, G01–G24), `npm run balance` (tools/bala
 ## Rounds
 
 _(filled in below as rounds complete)_
+
+### Round 1 (first full pass, 56 units)
+- **Sim tests:** 20/24.
+  - G06: siege alone vs a twig rush. Siege is a backline role and gets ~2 volleys; the criterion changed to "≥200 splash damage dealt".
+  - G14: the mesa had no edge deaths. The scenario now lines defenders up near the cliff.
+  - G23: L18 had 29% stuck units. Shields were pinned on the gorge bridge rails. Fix: rails are visual only, and there is routing to targets standing on a different bridge.
+  - G24: corpses were frozen, not asleep. Frozen now counts as settled.
+- **Faction-agent reports fixed:**
+  - Projectiles now use real-world gravity, so design speeds reach design ranges.
+  - Launchers close to their true ballistic range before firing.
+  - Cavalry start with their charge ready.
+  - Hop attacks are no longer cancelled while airborne.
+  - Boomerang guard added; its cooldown starts on the catch.
+- **Balance:** 21 units outside 20–80%.
+  - Legendaries at 83–100%.
+  - Every support at 0–8%.
+  - Lobbed siege at 0–17%.
+  - Juggler 92%, Lens Adept 88%, Zapcoil 83%.
+  - Wick Scamp 17%.
+- **Balance method change (D10):** siege is measured like support, with a Hoe Hand escort on both sides.
+- **Blind reviewer:** the round-1 reviewer was stopped before it reported. It is re-run after balancing.
+
+### Round 2 (costs only)
+- Supports got cheaper and heal more; legendary costs rose 15–60%.
+- **Result:** 17 out of band.
+  - Legendaries still 83–100%. They lose only to kiting Snowball Pelters at any price.
+  - A check showed they beat equal-gold Hoe Hands, Anchors and Stags with 20–93% HP left. Knockback keeps melee from landing hits.
+  - Supports and lobbed siege still at 0–19%. Healers delivered only 200–400 HP in the ~19 s fights.
+
+### Round 3
+- Heal cap raised from 15 to 25 HP/s.
+- Supports cost 45–55 with bigger heals and longer reach.
+- Lobbed siege: accuracy raised from 0.5 to 0.75, cost 110–120.
+- Legendary HP roughly halved, cost up about 10–15%.

@@ -30,11 +30,11 @@ export const TUNING = {
   launchDv: 6, // velocity change from a single hit that sends a unit flying
   maxDvH: 12, // per-hit velocity change caps
   maxDvV: 9,
-  healCap: 15, // max HP/s any unit can receive from all heal sources
-  hasteSpeed: 0.3,
-  hasteRate: 0.25,
-  mightDmg: 0.2,
-  mightArmor: 0.15,
+  healCap: 25, // max HP/s any unit can receive from all heal sources
+  hasteSpeed: 0.4,
+  hasteRate: 0.35,
+  mightDmg: 0.3,
+  mightArmor: 0.25,
   allyKnock: 0.5, // splash/slam knockback applied to allies (no damage)
   staggerTime: 0.45,
   recoverTime: 0.9,

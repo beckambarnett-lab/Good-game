@@ -1,6 +1,6 @@
 // The Gauntlet, part 2: equal-gold balance tournament. node tools/balance.mjs [seeds=2] [unitFilter]
 // Every unit fights 6 reference armies at (near) equal gold, both sides, several seeds.
-// Supports are measured by their marginal value: (escort + unit) vs (escort + reference).
+// Supports and siege are measured by their marginal value: (escort + unit) vs (escort + reference).
 // A unit's score is its average win rate over the references; the required band is 20-80%.
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { cpus } from 'node:os';
@@ -17,6 +17,7 @@ if (!isMainThread) {
   const { UNITS, UNIT_LIST } = await import('../src/data/units.js');
   const seeds = Number(process.argv[2] || 2);
   const filter = process.argv[3] || '';
+  const seedBase = Number(process.argv[4] || 0); // vary to re-check with fresh seeds
   const REFS = [
     { id: 'ref_melee', label: 'Hoe Hands', groups: [['grow_hoer', 1]] },
     { id: 'ref_ranged', label: 'Snowball Pelters', groups: [['mitten_pelter', 1]] },
@@ -44,10 +45,10 @@ if (!isMainThread) {
     groups.map(([id, frac]) => ({ id, n: Math.max(1, Math.round((G * frac) / UNITS[id].cost)) })).filter((g) => g.n > 0);
 
   const jobs = [];
-  const units = UNIT_LIST.filter((u) => !filter || u.id.includes(filter) || u.faction === filter);
+  const units = UNIT_LIST.filter((u) => !filter || filter.split(',').some((f) => u.id.includes(f) || u.faction === f || u.role === f));
   for (const u of units) {
     const G = budgetFor(u.cost);
-    const support = u.role === 'support';
+    const support = u.role === 'support' || u.role === 'siege';
     for (const ref of REFS) {
       let mine = [{ id: u.id, n: Math.max(1, Math.floor(G / u.cost)) }];
       let theirs = army(ref.groups, G);
@@ -59,8 +60,8 @@ if (!isMainThread) {
       }
       for (let s = 1; s <= seeds; s++) {
         const key = `${u.id}|${ref.id}`;
-        jobs.push({ key, swap: false, blue: mine, red: theirs, seed: s * 101 + jobs.length });
-        jobs.push({ key, swap: true, blue: theirs, red: mine, seed: s * 101 + jobs.length });
+        jobs.push({ key, swap: false, blue: mine, red: theirs, seed: seedBase + s * 101 + jobs.length });
+        jobs.push({ key, swap: true, blue: theirs, red: mine, seed: seedBase + s * 101 + jobs.length });
       }
     }
   }
@@ -71,8 +72,8 @@ if (!isMainThread) {
       const G = Math.max(a.cost, b.cost);
       const key = `${a.id}|${b.id}`;
       for (let s = 1; s <= seeds; s++) {
-        jobs.push({ key, swap: false, blue: [{ id: a.id, n: 1 }], red: [{ id: b.id, n: 1 }], seed: s * 131 });
-        jobs.push({ key, swap: true, blue: [{ id: b.id, n: 1 }], red: [{ id: a.id, n: 1 }], seed: s * 131 });
+        jobs.push({ key, swap: false, blue: [{ id: a.id, n: 1 }], red: [{ id: b.id, n: 1 }], seed: seedBase + s * 131 });
+        jobs.push({ key, swap: true, blue: [{ id: b.id, n: 1 }], red: [{ id: a.id, n: 1 }], seed: seedBase + s * 131 });
       }
       void G;
     }
