@@ -35,8 +35,8 @@ export const MAPS = {
     blurb: 'Flat, friendly grass. Nowhere to hide.',
     extent: [140, 120],
     theme: {
-      grassA: '#7fb04f',
-      grassB: '#669a40',
+      grassA: '#72a14a',
+      grassB: '#5e8c3c',
       dirt: '#b99a62',
       skyTop: '#5fa8f5',
       skyBottom: '#dff3ff',

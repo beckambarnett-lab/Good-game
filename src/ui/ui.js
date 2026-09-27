@@ -35,6 +35,10 @@ export class UI {
     on('btn-start', () => g.startBattle());
     on('btn-reset', () => g.resetBattle());
     on('btn-menu', () => this.openPause());
+    $('brief').addEventListener('click', () => ($('brief').hidden = true));
+    $('mode-chip').addEventListener('click', () => {
+      if (this.g.mode === 'build' && this.g.session.kind === 'campaign') $('brief').hidden = !$('brief').hidden;
+    });
     on('pm-resume', () => this.closePause());
     on('pm-howto', () => {
       this.closePause();
@@ -203,11 +207,13 @@ export class UI {
     if (!sandbox) {
       const L = s.level;
       brief.hidden = false;
-      brief.innerHTML = `<b>${L.name}</b> · ${g.map.name}. ${L.hint} <span style="color:var(--muted)">★★ ≤ ${fmt(L.par.two)} · ★★★ ≤ ${fmt(L.par.three)}</span>`;
+      brief.innerHTML = `<b>${L.name}</b> · ${g.map.name}<br>${L.hint}<span class="pars">★★ spend ≤ ${fmt(L.par.two)} · ★★★ spend ≤ ${fmt(L.par.three)} · tap to hide</span>`;
+      clearTimeout(this.briefT);
+      this.briefT = setTimeout(() => (brief.hidden = true), 9000);
     } else brief.hidden = true;
     if (this.tab && !this.factionUsable(this.tab)) this.tab = (FACTIONS.find((f) => this.factionUsable(f.id)) || FACTIONS[0]).id;
     this.syncTools();
-    this.hint(this.g.mobile ? 'Tap the blue zone to place. Two fingers to move the camera.' : 'Click or drag to place · Right-click removes · Right-drag or WASD moves the camera');
+    this.hint(sandbox ? (this.g.mobile ? '' : 'Click or drag to place · Right-click removes · Right-drag or WASD moves the camera') : '');
   }
 
   factionUsable(id) {
@@ -227,6 +233,7 @@ export class UI {
     $('tool-inf').textContent = `∞ Gold: ${g.session.unlimited ? 'on' : 'off'}`;
     $('tool-inf').classList.toggle('on', !!g.session.unlimited);
     $('tool-erase').classList.toggle('on', g.eraser);
+    $('tool-clear').textContent = sandbox ? `Clear ${g.placeTeam === 0 ? 'Blue' : 'Red'}` : 'Clear';
   }
 
   renderTray() {
@@ -311,6 +318,7 @@ export class UI {
     $('gold-val').textContent = fmt(left);
     $('gold-max').textContent = g.session.unlimited ? '' : `/ ${fmt(g.session.budget)}`;
     const pill = $('gold');
+    pill.classList.remove('broke');
     if (bump) {
       pill.classList.remove('bump');
       void pill.offsetWidth;
@@ -327,6 +335,8 @@ export class UI {
     pill.classList.remove('broke');
     void pill.offsetWidth;
     pill.classList.add('broke');
+    clearTimeout(this.brokeT);
+    this.brokeT = setTimeout(() => pill.classList.remove('broke'), 700);
   }
 
   // ------------------------------------------------------------ battle
@@ -409,7 +419,7 @@ export class UI {
       else sub = r.timeout ? 'Time ran out and they had more left standing.' : 'Try a different mix. Counters matter.';
     } else sub = r.timeout ? 'Decided on points after the time limit.' : `Battle lasted ${Math.round(r.time)} s.`;
     $('res-sub').textContent = sub;
-    const mvp = r.mvp ? `${r.mvp.def.name}` : '—';
+    const mvp = r.mvp && r.mvp.dmgDealt + r.mvp.healDone > 0 ? `${r.mvp.def.name}` : '—';
     $('res-stats').innerHTML = `<div><span>Time</span><b>${Math.floor(r.time / 60)}:${String(Math.floor(r.time % 60)).padStart(2, '0')}</b></div><div><span>Gold spent</span><b>${fmt(r.spent)}</b></div><div><span>Blue left</span><b>${r.alive[0]}</b></div><div><span>Red left</span><b>${r.alive[1]}</b></div><div style="grid-column:1/-1"><span>MVP</span><b>${mvp}</b></div>`;
     const next = $('res-next');
     if (sandbox) {

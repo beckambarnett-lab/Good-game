@@ -74,7 +74,8 @@ export class CameraRig {
     this.mode = 'follow';
     this.follow = u;
     this.followYaw = 0;
-    this.followDist = 6 + 3 * (u.def.scale || 1) + (u.def.mount ? 3 : 0);
+    this.followDist = 3.2 + 2.2 * (u.def.scale || 1) + (u.def.mount ? 2 : 0);
+    this.followPitch = 0.3;
     this.fpos.copy(this.cam.position);
   }
 

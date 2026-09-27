@@ -20,6 +20,16 @@ function makeGeometries() {
   return g;
 }
 
+// Low-poly stand-ins used for units far from the camera (geometry LOD).
+function makeLoGeometries() {
+  return {
+    sphere: new THREE.IcosahedronGeometry(0.5, 0),
+    cyl: new THREE.CylinderGeometry(0.5, 0.5, 1, 5),
+    cone: new THREE.ConeGeometry(0.5, 1, 5),
+    torus: new THREE.TorusGeometry(0.4, 0.1, 3, 7),
+  };
+}
+
 const _m = new THREE.Matrix4();
 const _m2 = new THREE.Matrix4();
 const _v = new THREE.Vector3();
@@ -84,6 +94,22 @@ export class Renderer {
       this.scene.add(m);
       this.meshes[s] = m;
       this.counts[s] = 0;
+    }
+    const lo = makeLoGeometries();
+    for (const s of Object.keys(lo)) {
+      const k = `${s}_lo`;
+      const m = new THREE.InstancedMesh(lo[s], mat, CAP[s]);
+      m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+      m.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(CAP[s] * 3), 3);
+      m.instanceColor.setUsage(THREE.DynamicDrawUsage);
+      m.frustumCulled = false;
+      m.castShadow = true;
+      m.receiveShadow = false;
+      m.count = 0;
+      this.scene.add(m);
+      this.meshes[k] = m;
+      this.counts[k] = 0;
+      CAP[k] = CAP[s];
     }
     this.mapGroup = new THREE.Group();
     this.scene.add(this.mapGroup);
@@ -372,11 +398,11 @@ export class Renderer {
 
   // ---------------------------------------------------------------- units
   beginFrame() {
-    for (const s of SHAPES) this.counts[s] = 0;
+    for (const s in this.counts) this.counts[s] = 0;
   }
 
   endFrame() {
-    for (const s of SHAPES) {
+    for (const s in this.meshes) {
       const m = this.meshes[s];
       m.count = this.counts[s];
       m.instanceMatrix.needsUpdate = true;
@@ -478,7 +504,7 @@ export class Renderer {
         if (fl > 0) _c.lerp(_white, fl * 0.65);
         c = _c;
       }
-      this.push(p.shape, _m, c);
+      this.push(far && p.shape !== 'box' ? `${p.shape}_lo` : p.shape, _m, c);
     }
   }
 

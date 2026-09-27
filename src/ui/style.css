@@ -548,18 +548,24 @@ kbd {
 }
 .brief {
   position: absolute;
-  top: 70px;
-  left: 50%;
-  transform: translateX(-50%);
+  top: calc(66px + env(safe-area-inset-top, 0px));
+  left: 12px;
   background: var(--ink);
   border: 3px solid var(--line);
   border-radius: 14px;
   padding: 8px 14px;
   font-weight: 800;
   font-size: 14px;
-  max-width: min(560px, calc(100% - 32px));
-  text-align: center;
+  max-width: min(360px, calc(100% - 24px));
+  text-align: left;
   box-shadow: 0 4px 0 var(--line);
+  cursor: pointer;
+  transition: opacity 0.3s;
+}
+.brief .pars {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
 }
 .brief b {
   color: var(--gold);
@@ -776,6 +782,14 @@ select.tool {
   background: var(--gold);
   color: #3a2600;
 }
+.card.on .role {
+  background: var(--ink);
+  color: var(--paper);
+}
+.card.on .role.legendary {
+  background: var(--gold);
+  color: #3a2600;
+}
 .card.on {
   background: var(--paper);
   color: var(--ink);
@@ -910,7 +924,7 @@ select.tool {
 }
 .res-btns {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   flex-wrap: wrap;
   justify-content: center;
 }
@@ -1017,7 +1031,7 @@ select.tool {
     font-size: 11px;
   }
   .brief {
-    top: 104px;
+    top: 108px;
     font-size: 12px;
   }
   .tool {
@@ -1048,4 +1062,11 @@ select.tool {
   height: 12px;
   border-radius: 50%;
   border: 2px solid var(--line);
+}
+.res-btns .big {
+  padding: 10px 14px 11px;
+  font-size: 16px;
+}
+.chip {
+  cursor: pointer;
 }

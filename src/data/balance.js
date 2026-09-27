@@ -12,7 +12,7 @@ export const BALANCE = {
   noon_herald: { cost: 32 },
   wax_remold: { cost: 26, weapon: { cooldown: 5, reviveHp: 0.8 } },
   // Lobbed siege (0-13%): more accurate and cheaper
-  // round 4: they hit but fire too rarely (8 shots per 26 s fight)
+  // round 4: they hit but fire too rarely (8 shots per 26 s fight); review r2 thought 55g was too cheap, but at 85g they fell to 0-4% (round 9 check), so kept
   grow_pumpkin: { cost: 55, weapon: { damage: 110, cooldown: 4.5, proj: { acc: 0.75 } } },
   briny_barrel: { cost: 55, weapon: { damage: 100, cooldown: 4.5, proj: { acc: 0.75, speed: 22 } } },
   moss_seed: { cost: 55, weapon: { damage: 75, cooldown: 4, proj: { acc: 0.75 } } },

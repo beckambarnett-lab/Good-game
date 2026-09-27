@@ -429,9 +429,9 @@ export class Game {
     // swoop the free camera down to a lower, closer angle for the fight
     if (this.rig.mode === 'free') {
       const portrait = this.camera.aspect < 0.9;
-      this.rig.pos.set(0, portrait ? 26 : 17, portrait ? 36 : 31);
+      this.rig.pos.set(0, portrait ? 19 : 11, portrait ? 30 : 24);
       this.rig.yaw = Math.PI;
-      this.rig.pitch = portrait ? -0.75 : -0.52;
+      this.rig.pitch = portrait ? -0.62 : -0.42;
     }
     this.audio.play('start');
     this.ui.fight('FIGHT!');
@@ -665,7 +665,13 @@ export class Game {
     R.update(dt);
     R.beginFrame();
     if (sim) {
+      const fol = this.rig.mode === 'follow' ? this.rig.follow : null;
       for (const u of sim.units) {
+        // in follow cam, don't let units right in front of the lens block the view
+        if (fol && u !== fol) {
+          const tp = u.p.torso.position;
+          if (Math.hypot(tp.x - c.x, tp.y - c.y, tp.z - c.z) < 1.2 + 1.3 * (u.def.scale || 1)) continue;
+        }
         R.drawUnit(u, c);
       }
       for (const p of sim.projectiles) R.drawProjectile(p);
