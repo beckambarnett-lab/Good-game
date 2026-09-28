@@ -1,0 +1,163 @@
+<div id="app">
+  <canvas id="view"></canvas>
+
+  <!-- Loading / error -->
+  <div id="loading" class="overlay center">
+    <div class="logo small">CLOBBERFIELD</div>
+    <div class="loadbar"><i></i></div>
+    <p id="loadmsg">Inflating soldiers…</p>
+  </div>
+
+  <!-- Title -->
+  <div id="title" class="overlay" hidden>
+    <div class="title-card">
+      <div class="logo" aria-label="Clobberfield"><span>C</span><span>L</span><span>O</span><span>B</span><span>B</span><span>E</span><span>R</span><span class="gap"></span><span>F</span><span>I</span><span>E</span><span>L</span><span>D</span></div>
+      <p class="tag">Place wobbly troops. Press start. Regret nothing.</p>
+      <div class="menu">
+        <button id="btn-campaign" class="big mint">Campaign</button>
+        <button id="btn-sandbox" class="big gold">Sandbox</button>
+        <button id="btn-howto" class="big ghost">How to play</button>
+      </div>
+      <p class="fine">8 factions · 56 units · 6 battlefields · every sound made from scratch</p>
+    </div>
+  </div>
+
+  <!-- How to play -->
+  <div id="howto" class="overlay center" hidden>
+    <div class="panel howto">
+      <h2>How to play</h2>
+      <ol>
+        <li><b>Pick a unit</b> from the tray at the bottom and <b>click or drag</b> on the blue zone to place it. Every unit costs gold.</li>
+        <li><b>Remove</b> units with right-click, or switch on the <b>Eraser</b> and tap them.</li>
+        <li>Press <b>Start</b> and watch. Nobody listens to orders once the fighting begins.</li>
+        <li>During battle: <b>click a unit</b> to ride along with it. <b>Pause</b>, <b>slow-mo</b> and <b>2×</b> are top right.</li>
+        <li>Press <b>Possess</b> (or <kbd>P</kbd>) while following one of your units to <b>fight as it</b>. Aim with the mouse, click to attack. The crosshair snaps to whatever you point at.</li>
+      </ol>
+      <div class="keys">
+        <div><kbd>W A S D</kbd> fly · <kbd>Q</kbd>/<kbd>E</kbd> down/up · <kbd>Shift</kbd> faster</div>
+        <div><kbd>Right-drag</kbd> look (build) · <kbd>Drag</kbd> look (battle) · <kbd>Wheel</kbd> zoom</div>
+        <div><kbd>Space</kbd> start / pause · <kbd>Esc</kbd> stop following</div>
+        <div>Possessed: <kbd>W A S D</kbd> move · <kbd>Mouse</kbd> aim · <kbd>Click</kbd> attack · <kbd>Right-click</kbd>/<kbd>F</kbd> skill · <kbd>Space</kbd> jump · <kbd>Esc</kbd> release</div>
+        <div class="touch">Phone: one finger places or looks around, two fingers pinch to zoom and drag to pan. Possessed: left thumb moves, right thumb looks, big button attacks.</div>
+      </div>
+      <button id="btn-howto-close" class="big mint">Got it</button>
+    </div>
+  </div>
+
+  <!-- Campaign select -->
+  <div id="campaign" class="overlay" hidden>
+    <div class="camp-head">
+      <button id="btn-camp-back" class="icon" aria-label="Back">‹</button>
+      <h2>Campaign</h2>
+      <div id="camp-stars" class="starcount"></div>
+    </div>
+    <div id="camp-grid" class="camp-grid"></div>
+  </div>
+
+  <!-- HUD -->
+  <div id="hud" hidden>
+    <div class="topbar">
+      <div class="tl">
+        <button id="btn-menu" class="icon" aria-label="Menu">≡</button>
+        <div class="chip" id="mode-chip">Sandbox</div>
+      </div>
+      <div class="tc">
+        <div id="gold" class="gold-pill"><i class="coin"></i><span id="gold-val">0</span><small id="gold-max"></small></div>
+        <div id="strength" class="strength" hidden>
+          <div class="sbar"><i id="s-blue"></i><i id="s-red"></i></div>
+          <div class="scount"><span id="c-blue">0</span><span id="timer">0:00</span><span id="c-red">0</span></div>
+        </div>
+      </div>
+      <div class="tr">
+        <div id="time-ctl" class="seg" hidden>
+          <button data-ts="0" aria-label="Pause">❚❚</button>
+          <button data-ts="0.25" aria-label="Slow motion">¼×</button>
+          <button data-ts="1" class="on" aria-label="Normal speed">1×</button>
+          <button data-ts="2" aria-label="Double speed">2×</button>
+        </div>
+        <button id="btn-start" class="big mint start">Start</button>
+        <button id="btn-reset" class="big ghost" hidden>Reset</button>
+      </div>
+    </div>
+
+    <div id="brief" class="brief" hidden></div>
+
+    <div id="follow" class="follow" hidden>
+      <button id="fol-prev" class="icon" aria-label="Previous unit">‹</button>
+      <div class="fol-info"><b id="fol-name"></b><div class="hpbar"><i id="fol-hp"></i></div></div>
+      <button id="fol-next" class="icon" aria-label="Next unit">›</button>
+      <button id="fol-possess" class="pz-go" aria-label="Take control of this unit">Possess</button>
+      <button id="fol-exit" class="icon" aria-label="Stop following">✕</button>
+    </div>
+
+    <div id="possess" class="possess" hidden>
+      <div id="pz-cross" class="pz-cross"><i></i></div>
+      <div id="pz-lock" class="pz-lock" hidden></div>
+      <div id="pz-nope" class="pz-nope">No target in reach</div>
+      <div class="pz-card">
+        <div class="pz-row"><b id="pz-name"></b><button id="pz-exit" class="pz-exit" aria-label="Release control">Release</button></div>
+        <div class="hpbar"><i id="pz-hp"></i></div>
+        <div class="pz-cds">
+          <span class="cd"><i id="pz-cd-atk"></i><em>Attack</em></span>
+          <span class="cd" id="pz-skill-w"><i id="pz-cd-skill"></i><em>Skill</em></span>
+          <span class="cd" id="pz-charge-w"><i id="pz-cd-charge"></i><em>Charge</em></span>
+        </div>
+      </div>
+      <div id="pz-keys" class="pz-keys"></div>
+      <div id="pz-joy" class="pz-joy" hidden><i></i></div>
+      <div class="pz-btns">
+        <button id="pz-b-skill" class="pz-b small" aria-label="Skill">Skill</button>
+        <button id="pz-b-jump" class="pz-b small" aria-label="Jump">Jump</button>
+        <button id="pz-b-atk" class="pz-b" aria-label="Attack">Attack</button>
+      </div>
+    </div>
+    <div id="hint" class="hint"></div>
+
+    <div id="tray" class="tray">
+      <button id="tool-hide" class="tool tray-toggle" aria-label="Hide or show the unit tray">▾ Units</button>
+      <div id="unit-info" class="unit-info" hidden></div>
+      <div class="tray-top">
+        <div id="tabs" class="tabs"></div>
+        <div class="tools">
+          <button id="tool-side" class="tool side" hidden>Placing: <b>Blue</b></button>
+          <button id="tool-inf" class="tool" hidden>∞ Gold: off</button>
+          <select id="tool-map" class="tool" hidden aria-label="Battlefield"></select>
+          <button id="tool-erase" class="tool">Eraser</button>
+          <button id="tool-clear" class="tool">Clear</button>
+        </div>
+      </div>
+      <div id="cards" class="cards"></div>
+    </div>
+  </div>
+
+  <!-- Result -->
+  <div id="result" class="overlay center" hidden>
+    <div class="panel result">
+      <div id="res-title" class="res-title">Victory!</div>
+      <div id="res-stars" class="res-stars"><i></i><i></i><i></i></div>
+      <p id="res-sub"></p>
+      <div id="res-stats" class="res-stats"></div>
+      <div class="res-btns">
+        <button id="res-retry" class="big ghost">Retry</button>
+        <button id="res-watch" class="big ghost">Watch</button>
+        <button id="res-next" class="big mint">Next level</button>
+        <button id="res-menu" class="big ghost">Menu</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pause menu -->
+  <div id="pausemenu" class="overlay center" hidden>
+    <div class="panel small">
+      <h2>Paused</h2>
+      <button id="pm-resume" class="big mint">Resume</button>
+      <button id="pm-sound" class="big ghost">Sound: on</button>
+      <button id="pm-music" class="big ghost">Music: on</button>
+      <button id="pm-quality" class="big ghost">Quality: high</button>
+      <button id="pm-howto" class="big ghost">How to play</button>
+      <button id="pm-quit" class="big ghost">Quit to title</button>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+</div>
