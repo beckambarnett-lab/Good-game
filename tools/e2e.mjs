@@ -185,6 +185,127 @@ await check('sandbox: every map loads, both sides placeable, unlimited gold, tim
   return `${maps.length} maps`;
 });
 
+await check('possess: take control from the follow cam, move, aim, attack, skill, jump, release', async () => {
+  await P.click('#res-menu');
+  await P.click('#btn-sandbox');
+  await P.waitForFunction(() => window.__game.mode === 'build');
+  await P.evaluate(() => {
+    const g = window.__game;
+    g.session.unlimited = true;
+    g.army = [];
+    g.buildSim(7);
+    const put = (team, id, x, z) => {
+      g.placeTeam = team;
+      g.selected = g.sim.defs[id];
+      g.tryPlace(x, z, true);
+    };
+    put(0, 'briny_anchor', 0, 5);
+    put(0, 'top_juggler', 12, 24);
+    for (let i = 0; i < 4; i++) put(1, 'grow_hoer', -3 + i * 2, -5);
+    for (let i = 0; i < 3; i++) put(1, 'grow_bale', -30 + i * 2.5, -24); // reserves so the battle outlasts the test
+    g.battleSeed = 7; // reproducible fight
+  });
+  await P.click('#btn-start');
+  await P.waitForFunction(() => window.__game.mode === 'battle');
+  await P.click('#time-ctl button[data-ts="0"]'); // paused: the test drives the sim itself
+  await P.evaluate(() => (window.__game.battleSeed = 0));
+  await P.evaluate(() => window.__game.follow(window.__game.sim.alive[0][0]));
+  assert(await P.isVisible('#fol-possess'), 'no Possess button on the follow panel');
+  await P.click('#fol-possess');
+  const st = await P.evaluate(() => ({ mode: window.__game.rig.mode, ctrl: !!window.__game.sim.alive[0][0].ctrl, hud: !document.getElementById('possess').hidden }));
+  assert(st.mode === 'possess' && st.ctrl && st.hud, `possess state ${JSON.stringify(st)}`);
+  // drive frames by hand: pz.update + sim.step (as the game loop does)
+  const run = (n) =>
+    P.evaluate((n) => {
+      const g = window.__game;
+      for (let i = 0; i < n && g.mode === 'battle'; i++) {
+        g.pz.update(1 / 60);
+        g.sim.step();
+        g.rig.update(1 / 60, 0);
+      }
+    }, n);
+  const u0 = await P.evaluate(() => {
+    const u = window.__game.pz.u;
+    return { x: u.x, z: u.z, yaw: window.__game.rig.pYaw };
+  });
+  // look straight at the enemy line, then walk forward with W
+  const c = await P.evaluate(() => ({ x: window.__game.canvas.clientWidth / 2, y: window.__game.canvas.clientHeight / 2 }));
+  await P.mouse.move(c.x, c.y);
+  await P.evaluate(() => {
+    const g = window.__game;
+    g.rig.pYaw = Math.PI;
+    g.rig.pPitch = -0.15;
+  });
+  await P.keyboard.down('KeyW');
+  await run(90);
+  await P.keyboard.up('KeyW');
+  const u1 = await P.evaluate(() => ({ x: window.__game.pz.u.x, z: window.__game.pz.u.z }));
+  assert(u0.z - u1.z > 2, `W did not move the unit forward (z ${u0.z.toFixed(1)} -> ${u1.z.toFixed(1)})`);
+  // strafe right with D (camera faces -z, so screen-right is +x)
+  await P.keyboard.down('KeyD');
+  await run(45);
+  await P.keyboard.up('KeyD');
+  const u2 = await P.evaluate(() => ({ x: window.__game.pz.u.x }));
+  assert(u2.x - u1.x > 0.7, `D did not strafe right (x ${u1.x.toFixed(1)} -> ${u2.x.toFixed(1)})`);
+  // close in and hold attack; the crosshair should lock the nearest foe
+  await P.keyboard.down('KeyW');
+  await P.mouse.down();
+  await run(240);
+  await P.keyboard.down('Space');
+  await run(10);
+  await P.keyboard.up('Space');
+  await run(120);
+  await P.screenshot({ path: `${OUT}/15-possess.png` });
+  await P.mouse.up();
+  await P.keyboard.up('KeyW');
+  const r = await P.evaluate(() => {
+    const u = window.__game.pz.u || window.__game.rig.follow;
+    return { dealt: u.dmgDealt, alive: u.alive, lockShown: !document.getElementById('pz-lock').hidden, jumped: u.jumpCool !== undefined };
+  });
+  assert(r.dealt > 0, 'possessed unit dealt no damage while attacking');
+  assert(r.jumped, 'Space did not jump');
+  // Esc (mouse not locked in headless Chromium) releases back to the follow cam
+  await P.keyboard.press('Escape');
+  const after = await P.evaluate(() => ({ mode: window.__game.rig.mode, ctrl: window.__game.sim.units.some((x) => x.ctrl), hud: !document.getElementById('possess').hidden }));
+  assert(after.mode === 'follow' && !after.ctrl && !after.hud, `release state ${JSON.stringify(after)}`);
+  // ranged unit: possess, aim at the ground and shoot at nothing
+  // the published page may refuse pointer lock: the cursor is then the crosshair and clicks must reach the game
+  await P.evaluate(() => {
+    window.__game.canvas.requestPointerLock = () => Promise.reject(new Error('blocked'));
+  });
+  const jug = await P.evaluate(() => {
+    const g = window.__game;
+    const j = g.sim.alive[0].find((x) => x.def.id === 'top_juggler');
+    if (j) g.possess(j);
+    return !!j;
+  });
+  assert(jug, 'juggler died before its turn');
+  await P.mouse.move(c.x - 120, c.y);
+  await P.evaluate(() => {
+    window.__game.rig.pYaw = Math.PI;
+    window.__game.rig.pPitch = -0.3;
+  });
+  const shots0 = await P.evaluate(() => window.__game.sim.nextProjId);
+  await P.mouse.down();
+  await run(150);
+  await P.mouse.up();
+  const shots1 = await P.evaluate(() => window.__game.sim.nextProjId);
+  const why = await P.evaluate(() => {
+    const g = window.__game;
+    const u = g.pz.u;
+    return { phase: g.sim.phase, alive: [g.sim.alive[0].length, g.sim.alive[1].length], cool: u && u.cool, fire: u && u.ctrl.fire, lock: u && u.ctrl.lock && u.ctrl.lock.def.id, launched: u && u.launched };
+  });
+  assert(shots1 > shots0, `possessed ranged unit did not fire ${JSON.stringify(why)}`);
+  assert(!(await P.evaluate(() => window.__game.pz.locked)), 'mouse unexpectedly locked');
+  await P.click('#pz-exit');
+  assert(!(await P.evaluate(() => window.__game.pz.active)), 'Release button did not release');
+  assert(D.errors.length === 0, `console errors: ${D.errors.join(' | ')}`);
+  await fastForward(P, 130);
+  await P.click('#time-ctl button[data-ts="1"]');
+  await P.waitForFunction(() => window.__game.mode === 'result', null, { timeout: 30000 });
+  return `moved ${(u0.z - u1.z).toFixed(1)} m, strafed ${(u2.x - u1.x).toFixed(1)} m, dealt ${Math.round(r.dealt)}, ${shots1 - shots0} shots`;
+});
+
 await check('performance: ~110 units battle (sim cost + render fps)', async () => {
   await P.click('#res-menu');
   await P.click('#btn-sandbox');
@@ -239,7 +360,7 @@ await check('performance: ~110 units battle (sim cost + render fps)', async () =
 await D.ctx.close();
 
 // ------------------------------------------------------------------ mobile
-await check('mobile 390x844: tap to place, tray collapses, pinch zoom, start', async () => {
+await check('mobile 390x844: tap to place, tray collapses, pinch zoom, start, possess', async () => {
   const M = await open({ width: 390, height: 844 }, true);
   const page = M.page;
   await page.screenshot({ path: `${OUT}/11-mobile-title.png` });
@@ -287,6 +408,42 @@ await check('mobile 390x844: tap to place, tray collapses, pinch zoom, start', a
   await fastForward(page, 3);
   await page.waitForTimeout(600);
   await page.screenshot({ path: `${OUT}/14-mobile-battle.png` });
+  // possess on a phone: joystick with the left thumb, attack button with the right
+  await page.tap('#time-ctl button[data-ts="0"]');
+  await page.evaluate(() => window.__game.follow(window.__game.sim.alive[0][0]));
+  await page.tap('#fol-possess');
+  assert(await page.evaluate(() => window.__game.rig.mode === 'possess'), 'phone: not possessed');
+  const m0 = await page.evaluate(() => {
+    const g = window.__game;
+    g.rig.pYaw = Math.PI;
+    return { z: g.pz.u.z };
+  });
+  await page.evaluate(() => {
+    const c = window.__game.canvas;
+    c.dispatchEvent(new PointerEvent('pointerdown', { pointerId: 7, clientX: 90, clientY: 700, pointerType: 'touch', bubbles: true }));
+    window.dispatchEvent(new PointerEvent('pointermove', { pointerId: 7, clientX: 90, clientY: 650, pointerType: 'touch' }));
+    const g = window.__game;
+    for (let i = 0; i < 90; i++) {
+      g.pz.update(1 / 60);
+      g.sim.step();
+      g.rig.update(1 / 60, 0);
+    }
+  });
+  const m1 = await page.evaluate(() => ({ z: window.__game.pz.u.z, joy: !document.getElementById('pz-joy').hidden }));
+  await page.screenshot({ path: `${OUT}/15-mobile-possess.png` });
+  assert(m1.joy, 'phone: joystick not shown');
+  assert(m0.z - m1.z > 1.5, `phone: joystick did not move the unit (${m0.z.toFixed(1)} -> ${m1.z.toFixed(1)})`);
+  const btn = await page.locator('#pz-b-atk').boundingBox();
+  assert(btn && btn.width >= 80, 'phone: no attack button');
+  await page.evaluate(() => {
+    window.dispatchEvent(new PointerEvent('pointerup', { pointerId: 7, pointerType: 'touch' }));
+    const b = document.getElementById('pz-b-atk');
+    b.dispatchEvent(new PointerEvent('pointerdown', { pointerId: 8, pointerType: 'touch', bubbles: true }));
+  });
+  assert(await page.evaluate(() => window.__game.pz.fire), 'phone: attack button did not arm the attack');
+  await page.evaluate(() => document.getElementById('pz-b-atk').dispatchEvent(new PointerEvent('pointerup', { pointerId: 8, pointerType: 'touch', bubbles: true })));
+  await page.tap('#pz-exit');
+  assert(await page.evaluate(() => !window.__game.pz.active), 'phone: Release did not release');
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
   assert(!overflow, 'horizontal overflow on phone');
   assert(M.errors.length === 0, `console errors: ${M.errors.join(' | ')}`);

@@ -193,6 +193,10 @@ export class EventFx {
         case 'windup':
           if (!quiet && e.unit.def.role === 'legendary') this.play('whoosh', e, { mag: 2500 });
           break;
+        case 'jump':
+          fx.burst(e.x, e.y - 0.9, e.z, 6, { colors: this.dustCols(), speed: 1.6, life: 0.6, s0: 0.4, s1: 0.9, grav: -0.5, up: 0.1, drag: 2 });
+          if (!quiet) this.play('whoosh', e, { mag: 400, vol: 0.6 });
+          break;
         case 'whiff':
           if (!quiet && Math.random() < 0.3) this.play('whoosh', e, { mag: 300, vol: 0.5 });
           break;

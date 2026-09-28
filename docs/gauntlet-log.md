@@ -90,3 +90,12 @@ _(filled in below as rounds complete)_
 - **Other changes:** the sandbox starts with $20,000; the title-screen demo battle picks units by slots, not gold.
 - **Tournament:** it switches progression off (`globalThis.CLOBBER_NO_RANKS`), so the 20–80% band is measured within a rank.
 - **Checks:** sim tests 24/24; e2e 6/6.
+
+### Possession (user request)
+- Any live unit can be taken over mid-battle: Possess button on the follow panel, or `P`. A unit with `ctrl` skips the AI brain (`src/sim/possess.js`) and is driven from input (`src/ui/possess.js`).
+- **Controls:** camera-relative WASD / left-thumb joystick, over-the-shoulder camera turned by the mouse (pointer lock when allowed, cursor-aim with edge turning when not) or the right thumb. Hold to attack, skill on demand for legendaries, jump, `Esc` / Release.
+- **Aim:** the soft lock picks the valid target nearest the crosshair ray (enemies, or allies/corpses for support weapons), else the closest target in a front cone in reach (wide for melee). The body turns to face the lock so swings connect. Projectiles, beams and telegraphed strikes fire at the ground under the crosshair when nothing is locked (clamped to real reach).
+- **No stat changes:** a possessed unit has exactly its normal stats. Cavalry charge while moving, and the attack slowdown is eased (≥45% speed) so the player can reposition while swinging.
+- **Decision (D11):** in the campaign you can possess only blue units; in the sandbox either side. Esc always releases (a locked mouse is freed with it).
+- **Bug found by the e2e check:** the HUD's `#hud > *` rule re-enabled pointer events on the full-screen possess overlay, which would have eaten every click when pointer lock is refused. It now passes clicks through to the game.
+- **Tests:** `tools/possess-test.mjs` (in `npm test`) drives each of the 56 units with a scripted player: all deal damage, heal or revive, and none go unstable. e2e gains a desktop possess check (move, strafe, lock + melee, jump, ranged fire at nothing with pointer lock refused, Release) and phone controls (joystick, Attack button, Release).

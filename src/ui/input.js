@@ -20,7 +20,11 @@ export class Input {
     );
     window.addEventListener('keydown', (e) => this.key(e, true));
     window.addEventListener('keyup', (e) => this.key(e, false));
-    window.addEventListener('blur', () => game.rig.keys.clear());
+    window.addEventListener('blur', () => {
+      game.rig.keys.clear();
+      game.pz.keys.clear();
+      game.pz.fire = game.pz.fire2 = game.pz.jump = false;
+    });
   }
 
   local(e) {
@@ -32,6 +36,13 @@ export class Input {
     const g = this.g;
     g.unlockAudio();
     const p = this.local(e);
+    if (g.pz.active) {
+      try {
+        g.canvas.setPointerCapture(e.pointerId);
+      } catch {}
+      g.pz.pointerDown(e, p);
+      return;
+    }
     this.ptrs.set(e.pointerId, { ...p, sx: p.x, sy: p.y });
     try {
       g.canvas.setPointerCapture(e.pointerId);
@@ -65,6 +76,10 @@ export class Input {
 
   move(e) {
     const g = this.g;
+    if (g.pz.active) {
+      g.pz.pointerMove(e, this.local(e));
+      return;
+    }
     if (!this.ptrs.has(e.pointerId)) {
       // hover (mouse): placement ghost
       if (g.mode === 'build' && e.pointerType === 'mouse' && e.target === g.canvas) {
@@ -113,6 +128,11 @@ export class Input {
 
   up(e, cancel) {
     const g = this.g;
+    if (g.pz.active && g.pz.pointerUp(e)) {
+      this.ptrs.delete(e.pointerId);
+      this.drag = null;
+      return;
+    }
     const had = this.ptrs.get(e.pointerId);
     this.ptrs.delete(e.pointerId);
     const d = this.drag;
@@ -161,6 +181,11 @@ export class Input {
     const g = this.g;
     if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT')) return;
     const code = e.code;
+    if (g.pz.key(e, down)) return;
+    if (down && code === 'KeyP' && g.mode === 'battle' && g.rig.mode === 'follow') {
+      g.pz.start(g.rig.follow);
+      return;
+    }
     const rigKeys = ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyQ', 'KeyE', 'KeyC', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ShiftLeft', 'ShiftRight'];
     if (rigKeys.includes(code)) {
       if (down) g.rig.keys.add(code);

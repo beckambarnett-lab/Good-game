@@ -950,6 +950,11 @@ select.tool {
   opacity: 1;
   transform: translate(-50%, -50%) scale(1);
 }
+.fight.small {
+  font-size: clamp(36px, 8vw, 72px);
+  align-items: flex-start;
+  padding-top: 18vh;
+}
 .fight {
   position: absolute;
   inset: 0;
@@ -1075,4 +1080,230 @@ select.tool {
   font-weight: 900;
   opacity: 0.7;
   margin-left: 2px;
+}
+
+/* Possession */
+.pz-go {
+  font-family: var(--display);
+  font-size: 14px;
+  letter-spacing: 0.5px;
+  color: #3b0a22;
+  background: var(--pink);
+  border: 3px solid var(--line);
+  border-radius: 12px;
+  padding: 0 12px;
+  height: 42px;
+  box-shadow: 0 4px 0 var(--line);
+}
+.pz-go:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 var(--line);
+}
+#hud > .possess {
+  position: absolute;
+  inset: 0;
+  pointer-events: none; /* clicks go through to the canvas; only its buttons take them */
+}
+.possess button {
+  pointer-events: auto;
+}
+.pz-cross {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 26px;
+  height: 26px;
+  margin: -13px 0 0 -13px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 246, 230, 0.85);
+  box-shadow: 0 0 0 2px rgba(11, 16, 28, 0.55);
+  transition: border-color 0.1s, transform 0.1s;
+}
+.pz-cross i {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 4px;
+  height: 4px;
+  margin: -2px 0 0 -2px;
+  border-radius: 50%;
+  background: var(--paper);
+}
+.pz-cross.hot {
+  border-color: #ff8d86;
+  transform: scale(0.8);
+}
+.pz-cross.ally {
+  border-color: var(--mint);
+  transform: scale(0.8);
+}
+.pz-lock {
+  position: absolute;
+  width: 44px;
+  height: 44px;
+  margin: -22px 0 0 -22px;
+  border: 3px solid #ff8d86;
+  border-radius: 10px;
+  box-shadow: 0 0 0 2px rgba(11, 16, 28, 0.5);
+  transform: rotate(45deg);
+}
+.pz-lock.ally {
+  border-color: var(--mint);
+}
+.pz-lock.far {
+  border-style: dashed;
+  opacity: 0.6;
+}
+.pz-nope {
+  position: absolute;
+  left: 50%;
+  top: calc(50% + 30px);
+  transform: translateX(-50%);
+  font-weight: 900;
+  font-size: 13px;
+  color: #ff8d86;
+  text-shadow: 0 2px 0 var(--line);
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.pz-nope.show {
+  opacity: 1;
+}
+.pz-card {
+  position: absolute;
+  left: 12px;
+  bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  width: 230px;
+  background: var(--ink);
+  border: 3px solid var(--line);
+  border-radius: 16px;
+  padding: 8px 10px;
+  box-shadow: 0 4px 0 var(--line);
+}
+.pz-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.pz-row b {
+  flex: 1;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pz-exit {
+  font: 800 12px var(--body);
+  color: var(--paper);
+  background: var(--ink3);
+  border: 2px solid var(--line);
+  border-radius: 9px;
+  padding: 3px 8px;
+}
+.pz-cds {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+.pz-cds .cd {
+  position: relative;
+  flex: 1;
+  height: 18px;
+  border-radius: 6px;
+  background: var(--ink3);
+  overflow: hidden;
+  text-align: center;
+}
+.pz-cds .cd i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 100%;
+  background: var(--gold);
+}
+.pz-cds .cd.ready i {
+  background: var(--mint);
+}
+.pz-cds .cd em {
+  position: relative;
+  font: 900 11px/18px var(--body);
+  font-style: normal;
+  color: var(--line);
+}
+.pz-keys {
+  position: absolute;
+  left: 50%;
+  top: calc(74px + env(safe-area-inset-top, 0px));
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: 92vw;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--paper);
+  text-shadow: 0 2px 0 var(--line), 0 0 8px rgba(0, 0, 0, 0.6);
+}
+.pz-joy {
+  position: absolute;
+  width: 110px;
+  height: 110px;
+  margin: -55px 0 0 -55px;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 246, 230, 0.5);
+  background: rgba(11, 16, 28, 0.25);
+}
+.pz-joy i {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 46px;
+  height: 46px;
+  margin: -23px 0 0 -23px;
+  border-radius: 50%;
+  background: rgba(255, 246, 230, 0.8);
+  border: 3px solid var(--line);
+}
+.pz-btns {
+  display: none;
+  position: absolute;
+  right: 14px;
+  bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+  align-items: flex-end;
+  gap: 10px;
+}
+.possess.touch .pz-btns {
+  display: flex;
+}
+.possess.touch .pz-keys {
+  display: none;
+}
+.possess.touch .pz-card {
+  top: calc(170px + env(safe-area-inset-top, 0px));
+  bottom: auto;
+  width: 168px;
+  padding: 6px 8px;
+}
+.pz-b {
+  width: 86px;
+  height: 86px;
+  border-radius: 50%;
+  border: 3px solid var(--line);
+  background: var(--red);
+  color: var(--paper);
+  font: 16px var(--display);
+  box-shadow: 0 5px 0 var(--line);
+  touch-action: none;
+}
+.pz-b.small {
+  width: 58px;
+  height: 58px;
+  font-size: 11px;
+  background: var(--ink2);
+}
+.pz-b.held {
+  transform: translateY(3px);
+  box-shadow: 0 2px 0 var(--line);
+  filter: brightness(1.2);
+}
+#pz-b-skill.cool {
+  opacity: 0.5;
 }

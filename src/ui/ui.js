@@ -110,6 +110,7 @@ export class UI {
     });
     on('fol-prev', () => g.cycleFollow(-1));
     on('fol-next', () => g.cycleFollow(1));
+    on('fol-possess', () => g.possess());
     on('fol-exit', () => {
       g.rig.stopFollow();
       this.hideFollow();
@@ -141,6 +142,7 @@ export class UI {
     $('result').hidden = true;
     $('pausemenu').hidden = true;
     if (screen !== 'build' && screen !== 'battle') this.hideFollow();
+    if (this.g.pz) this.g.pz.release(true);
   }
 
   showHowto() {
@@ -179,9 +181,9 @@ export class UI {
     $('hint').textContent = msg;
   }
 
-  fight(text, warn) {
+  fight(text, warn, small) {
     const d = document.createElement('div');
-    d.className = 'fight';
+    d.className = small ? 'fight small' : 'fight';
     d.textContent = text;
     if (warn) d.style.color = '#ff8d86';
     $('app').appendChild(d);
@@ -351,7 +353,7 @@ export class UI {
     $('brief').hidden = true;
     $('unit-info').hidden = true;
     this.setTimeButtons(1);
-    this.hint(this.g.mobile ? 'Tap a unit to follow it · Drag to look around' : 'Click a unit to follow it · Drag to look · WASD to fly · Space pauses');
+    this.hint(this.g.mobile ? 'Tap a unit to follow it, then Possess to fight as it' : 'Click a unit to follow it, then Possess (P) to fight as it · Drag to look · WASD to fly · Space pauses');
     this.startCounts = [this.g.sim.alive[0].length, this.g.sim.alive[1].length];
     this.startValue = [this.g.sim.teamValue(0), this.g.sim.teamValue(1)];
   }
@@ -381,11 +383,13 @@ export class UI {
       const u = g.rig.follow;
       $('fol-hp').style.width = `${Math.max(0, (u.hp / u.maxHp) * 100)}%`;
       if (!u.alive) $('fol-name').textContent = `${u.def.name} (down)`;
+      $('fol-possess').hidden = !g.pz.canPossess(u);
     }
   }
 
   showFollow(u) {
     $('follow').hidden = false;
+    $('fol-possess').hidden = !this.g.pz.canPossess(u);
     $('fol-name').textContent = u.def.name;
     $('fol-name').style.color = u.team === 0 ? '#8db4ff' : '#ff9a92';
   }

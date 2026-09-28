@@ -6,6 +6,7 @@ import { FACTIONS, UNITS, UNIT_LIST } from './data/units.js';
 import { makeRng } from './sim/rng.js';
 import { Sim } from './sim/world.js';
 import { Input } from './ui/input.js';
+import { Possession } from './ui/possess.js';
 import { UI } from './ui/ui.js';
 import { CameraRig } from './view/camera.js';
 import { EventFx } from './view/events.js';
@@ -68,6 +69,7 @@ export class Game {
     onProgress?.('Teaching them to stand up…');
     await frame();
     this.ui = new UI(this);
+    this.pz = new Possession(this);
     this.input = new Input(this);
     window.addEventListener('resize', () => this.resize());
     this.resize();
@@ -127,6 +129,7 @@ export class Game {
   }
 
   buildSim(seed) {
+    if (this.pz) this.pz.release(true);
     if (this.sim) this.disposeSim();
     this.sim = new Sim({ map: this.map, seed: seed ?? 1 + ((Math.random() * 1e6) | 0), defs: UNITS, lowPower: this.mobile });
     if (this.mapDirty || !this.renderer.terrain) {
@@ -541,6 +544,10 @@ export class Game {
     this.audio.play('click');
   }
 
+  possess(u) {
+    this.pz.start(u || this.rig.follow);
+  }
+
   cycleFollow(dir) {
     const cur = this.rig.follow;
     const team = cur ? cur.team : 0;
@@ -605,6 +612,7 @@ export class Game {
     this.timeScale = ts;
     this.audio.setTimeScale(this.mode === 'title' ? 1 : ts);
 
+    this.pz.update(dt);
     if (sim && ts > 0) {
       const simDt = ts < 1 ? T.dt * ts : T.dt;
       this.acc += Math.min(dt, 0.05) * ts;
@@ -666,7 +674,7 @@ export class Game {
     R.update(dt);
     R.beginFrame();
     if (sim) {
-      const fol = this.rig.mode === 'follow' ? this.rig.follow : null;
+      const fol = this.rig.mode === 'follow' || this.rig.mode === 'possess' ? this.rig.follow : null;
       for (const u of sim.units) {
         // in follow cam, don't let units right in front of the lens block the view
         if (fol && u !== fol) {

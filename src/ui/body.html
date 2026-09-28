@@ -31,12 +31,14 @@
         <li><b>Remove</b> units with right-click, or switch on the <b>Eraser</b> and tap them.</li>
         <li>Press <b>Start</b> and watch. Nobody listens to orders once the fighting begins.</li>
         <li>During battle: <b>click a unit</b> to ride along with it. <b>Pause</b>, <b>slow-mo</b> and <b>2×</b> are top right.</li>
+        <li>Press <b>Possess</b> (or <kbd>P</kbd>) while following one of your units to <b>fight as it</b>. Aim with the mouse, click to attack. The crosshair snaps to whatever you point at.</li>
       </ol>
       <div class="keys">
         <div><kbd>W A S D</kbd> fly · <kbd>Q</kbd>/<kbd>E</kbd> down/up · <kbd>Shift</kbd> faster</div>
         <div><kbd>Right-drag</kbd> look (build) · <kbd>Drag</kbd> look (battle) · <kbd>Wheel</kbd> zoom</div>
         <div><kbd>Space</kbd> start / pause · <kbd>Esc</kbd> stop following</div>
-        <div class="touch">Phone: one finger places or looks around, two fingers pinch to zoom and drag to pan.</div>
+        <div>Possessed: <kbd>W A S D</kbd> move · <kbd>Mouse</kbd> aim · <kbd>Click</kbd> attack · <kbd>Right-click</kbd>/<kbd>F</kbd> skill · <kbd>Space</kbd> jump · <kbd>Esc</kbd> release</div>
+        <div class="touch">Phone: one finger places or looks around, two fingers pinch to zoom and drag to pan. Possessed: left thumb moves, right thumb looks, big button attacks.</div>
       </div>
       <button id="btn-howto-close" class="big mint">Got it</button>
     </div>
@@ -84,7 +86,30 @@
       <button id="fol-prev" class="icon" aria-label="Previous unit">‹</button>
       <div class="fol-info"><b id="fol-name"></b><div class="hpbar"><i id="fol-hp"></i></div></div>
       <button id="fol-next" class="icon" aria-label="Next unit">›</button>
+      <button id="fol-possess" class="pz-go" aria-label="Take control of this unit">Possess</button>
       <button id="fol-exit" class="icon" aria-label="Stop following">✕</button>
+    </div>
+
+    <div id="possess" class="possess" hidden>
+      <div id="pz-cross" class="pz-cross"><i></i></div>
+      <div id="pz-lock" class="pz-lock" hidden></div>
+      <div id="pz-nope" class="pz-nope">No target in reach</div>
+      <div class="pz-card">
+        <div class="pz-row"><b id="pz-name"></b><button id="pz-exit" class="pz-exit" aria-label="Release control">Release</button></div>
+        <div class="hpbar"><i id="pz-hp"></i></div>
+        <div class="pz-cds">
+          <span class="cd"><i id="pz-cd-atk"></i><em>Attack</em></span>
+          <span class="cd" id="pz-skill-w"><i id="pz-cd-skill"></i><em>Skill</em></span>
+          <span class="cd" id="pz-charge-w"><i id="pz-cd-charge"></i><em>Charge</em></span>
+        </div>
+      </div>
+      <div id="pz-keys" class="pz-keys"></div>
+      <div id="pz-joy" class="pz-joy" hidden><i></i></div>
+      <div class="pz-btns">
+        <button id="pz-b-skill" class="pz-b small" aria-label="Skill">Skill</button>
+        <button id="pz-b-jump" class="pz-b small" aria-label="Jump">Jump</button>
+        <button id="pz-b-atk" class="pz-b" aria-label="Attack">Attack</button>
+      </div>
     </div>
     <div id="hint" class="hint"></div>
 

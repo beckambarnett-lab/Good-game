@@ -1,11 +1,13 @@
 import { TUNING as T } from '../data/tuning.js';
 import { canRevive, gap, isSupportKind, reach } from './combat.js';
+import { possessThink } from './possess.js';
 
 // Unit brains: target selection, movement (bridge routing, hazard and edge avoidance), kiting for
 // ranged units (time-limited), healers seeking hurt allies, remolders seeking fresh corpses.
 
 export function think(sim, u, dt) {
   if (!u.alive) return;
+  if (u.ctrl) return possessThink(sim, u, dt);
   const w = u.def.weapon;
   const ai = u.def.ai || {};
   const support = isSupportKind(w.kind) && !sim.sudden;

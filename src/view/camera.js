@@ -1,6 +1,12 @@
 import { THREE } from './three.js';
 
-// Free-fly camera (WASD + drag look, wheel/pinch dolly, two-finger pan) and follow-a-unit mode.
+const _v = new THREE.Vector3();
+const _f = new THREE.Vector3();
+const _r = new THREE.Vector3();
+const _w = new THREE.Vector3();
+
+// Free-fly camera (WASD + drag look, wheel/pinch dolly, two-finger pan), follow-a-unit mode, and an
+// over-the-shoulder mode for a possessed unit (mouse/drag turns the view; the unit faces the crosshair).
 export class CameraRig {
   constructor(cam, ground) {
     this.cam = cam;
@@ -18,6 +24,11 @@ export class CameraRig {
     this.flook = new THREE.Vector3();
     this.vel = new THREE.Vector3();
     this.shakeT = 0;
+    this.pYaw = 0;
+    this.pPitch = 0;
+    this.pDist = 5;
+    this.pivot = new THREE.Vector3();
+    this.sens = 1;
   }
 
   setGround(g) {
@@ -36,6 +47,11 @@ export class CameraRig {
   }
 
   rotate(dx, dy) {
+    if (this.mode === 'possess') {
+      this.pYaw -= dx * 0.0042 * this.sens;
+      this.pPitch = Math.max(-0.75, Math.min(0.9, this.pPitch - dy * 0.0036 * this.sens));
+      return;
+    }
     if (this.mode === 'follow') {
       this.followYaw -= dx * 0.006;
       this.followPitch = Math.max(-0.1, Math.min(1.3, this.followPitch + dy * 0.005));
@@ -46,6 +62,11 @@ export class CameraRig {
   }
 
   dolly(d) {
+    if (this.mode === 'possess') {
+      const s = this.follow ? this.follow.def.scale || 1 : 1;
+      this.pDist = Math.max(2 + s, Math.min(14 + 3 * s, this.pDist * (1 + d * 0.1)));
+      return;
+    }
     if (this.mode === 'follow') {
       this.followDist = Math.max(3, Math.min(30, this.followDist * (1 + d * 0.1)));
       return;
@@ -56,7 +77,7 @@ export class CameraRig {
   }
 
   pan(dx, dy) {
-    if (this.mode === 'follow') return;
+    if (this.mode !== 'free') return;
     const r = new THREE.Vector3(-Math.cos(this.yaw), 0, Math.sin(this.yaw)); // screen-right
     const f = new THREE.Vector3(Math.sin(this.yaw), 0, Math.cos(this.yaw));
     const k = Math.max(0.02, this.pos.y * 0.0025);
@@ -79,8 +100,25 @@ export class CameraRig {
     this.fpos.copy(this.cam.position);
   }
 
+  startPossess(u) {
+    this.mode = 'possess';
+    this.follow = u;
+    const s = u.def.scale || 1;
+    this.pYaw = u.facing();
+    this.pPitch = -0.2;
+    this.pDist = 2.6 + 1.9 * s + (u.def.mount ? 2.2 : 0);
+    this.pivot.copy(u.p.torso.position);
+    this.fpos.copy(this.cam.position);
+  }
+
+  // Unit vector the possessed view is looking along.
+  aimDir(out) {
+    const cp = Math.cos(this.pPitch);
+    return out.set(Math.sin(this.pYaw) * cp, Math.sin(this.pPitch), Math.cos(this.pYaw) * cp);
+  }
+
   stopFollow() {
-    if (this.mode !== 'follow') return;
+    if (this.mode !== 'follow' && this.mode !== 'possess') return;
     this.mode = 'free';
     // hand the current view back to the free camera
     this.pos.copy(this.cam.position);
@@ -101,7 +139,25 @@ export class CameraRig {
 
   update(dt, shake) {
     const cam = this.cam;
-    if (this.mode === 'follow' && this.follow) {
+    if (this.mode === 'possess' && this.follow) {
+      const u = this.follow;
+      const s = u.def.scale || 1;
+      const t = u.p.torso.position;
+      // smooth the pivot so ragdoll wobble doesn't shake the view
+      this.pivot.lerp(_v.set(t.x, t.y + 0.45 * s + (u.def.mount ? 0.4 : 0), t.z), 1 - Math.exp(-dt * 14));
+      const f = this.aimDir(_f);
+      const r = _r.set(-Math.cos(this.pYaw), 0, Math.sin(this.pYaw)); // screen-right
+      const side = 0.55 + 0.3 * s;
+      const want = _w.copy(this.pivot).addScaledVector(f, -this.pDist).addScaledVector(r, side);
+      want.y += 0.35;
+      const gy = this.ground ? this.ground.heightAt(want.x, want.z) : 0;
+      want.y = Math.max(want.y, gy + 0.6);
+      this.fpos.lerp(want, 1 - Math.exp(-dt * 20));
+      cam.position.copy(this.fpos);
+      cam.lookAt(this.fpos.x + f.x, this.fpos.y + f.y, this.fpos.z + f.z);
+      this.flook.copy(this.fpos).addScaledVector(f, 10);
+      this.pos.copy(this.fpos);
+    } else if (this.mode === 'follow' && this.follow) {
       const u = this.follow;
       const t = u.p.torso.position;
       const face = u.alive ? u.facing() : this.lastFace || 0;

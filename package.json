@@ -6,7 +6,7 @@
   "description": "Clobberfield: a wobbly ragdoll army battle sandbox in one HTML page.",
   "scripts": {
     "build": "node tools/build.mjs",
-    "test": "node tools/sim-test.mjs",
+    "test": "node tools/sim-test.mjs && node tools/possess-test.mjs",
     "balance": "node tools/balance.mjs",
     "e2e": "node tools/e2e.mjs",
     "check": "node tools/check-boundaries.mjs"

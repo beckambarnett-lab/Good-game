@@ -1,5 +1,6 @@
 import * as CANNON from 'cannon-es';
 import { addZone } from './zones.js';
+import { playerTarget, pointTarget } from './possess.js';
 import { applyEffect, areaBlast, ballisticRange, fireProjectile, pullToward } from './projectiles.js';
 
 const tH = new CANNON.Vec3();
@@ -79,7 +80,7 @@ export function updateCombat(sim, u, dt) {
   const anim = POSES[w.anim || DEFAULT_ANIM[w.kind]] || POSES.swing;
 
   if (u.def.charge) chargeCheck(sim, u, dt);
-  if (u.def.weapon2 && !disabled) secondary(sim, u);
+  if (u.def.weapon2 && !disabled && (!u.ctrl || u.ctrl.fire2)) secondary(sim, u);
 
   if (u.atk) {
     const a = u.atk;
@@ -88,7 +89,7 @@ export function updateCombat(sim, u, dt) {
     const rec = w.recover ?? 0.3;
     if (a.phase === 0) {
       u.pose = anim.wind.r ? { r: anim.wind.r, l: anim.wind.l || null, k: 1.2 } : null;
-      if (a.target && a.target.alive) faceToward(u, a.target);
+      if (a.target && a.target.alive && !u.ctrl) faceToward(u, a.target);
       if (a.target && !validTarget(u, w, a.target)) {
         u.atk = null;
         u.pose = null;
@@ -118,6 +119,7 @@ export function updateCombat(sim, u, dt) {
     }
     return;
   }
+  if (u.ctrl) return playerAttack(sim, u, w, anim, disabled);
   // Ranged units hold their aim between shots.
   const t = u.target;
   if (t && t.alive && (w.anim === 'aim' || w.anim === 'bow') && gap(u, t) < reach(u, w, t) + 2) {
@@ -133,6 +135,25 @@ export function updateCombat(sim, u, dt) {
     if (g > reach(u, w, t) || g < (w.minRange || 0)) return;
   }
   if (u.boomOut && w.proj && w.proj.boomerang && sim.time - u.boomOut < 6) return;
+  u.atk = { phase: 0, t: 0, target: t, tick: 0 };
+  if (w.hop) {
+    u.base.velocity.y += w.hop;
+    u.base.wakeUp();
+  }
+  sim.emit('windup', u.pos, { unit: u, kind: w.kind });
+}
+
+// Possessed unit: attacks when the player holds fire and the cooldown is ready.
+function playerAttack(sim, u, w, anim, disabled) {
+  const c = u.ctrl;
+  u.pose = (w.anim === 'aim' || w.anim === 'bow') && anim.wind.r ? { r: anim.wind.r, l: anim.wind.l || null, k: 1 } : null;
+  if (!c.fire || u.cool > 0 || disabled) return;
+  if (u.boomOut && w.proj && w.proj.boomerang && sim.time - u.boomOut < 6) return;
+  const t = playerTarget(sim, u, w, c.lock);
+  if (t === undefined) {
+    c.noTargetT = sim.time;
+    return;
+  }
   u.atk = { phase: 0, t: 0, target: t, tick: 0 };
   if (w.hop) {
     u.base.velocity.y += w.hop;
@@ -189,6 +210,31 @@ function secondary(sim, u) {
   const w2 = u.def.weapon2;
   if (u.cool2 > 0) return;
   let t = null;
+  if (u.ctrl) {
+    // player-fired: the locked enemy if it's in range, else the nearest one in front, else aim at the crosshair
+    const L = u.ctrl.lock;
+    if (L && L.alive && L.team !== u.team && gap(u, L) < w2.range + 1) t = L;
+    else {
+      let bd = w2.range + 1;
+      for (const e of sim.grid.query(u.x, u.z, w2.range + 3)) {
+        if (!e.alive || e.team === u.team) continue;
+        const g = gap(u, e);
+        if (g < bd) {
+          bd = g;
+          t = e;
+        }
+      }
+    }
+    if (!t && w2.kind === 'projectile') {
+      const r = Math.min(w2.range, reach(u, w2, null));
+      const x = u.x + Math.sin(u.ctrl.yaw) * r;
+      const z = u.z + Math.cos(u.ctrl.yaw) * r;
+      t = pointTarget(x, sim.ground.surfaceAt(x, z) + 0.9, z);
+    }
+    u.cool2 = w2.cooldown;
+    resolveAttack(sim, u, { target: t, tick: 0, t: 0 }, w2);
+    return;
+  }
   if (w2.when === 'crowd') {
     let n = 0;
     for (const e of sim.grid.query(u.x, u.z, w2.range + 1)) if (e.alive && e.team !== u.team && gap(u, e) < w2.range) n++;
@@ -533,7 +579,7 @@ function chargeCheck(sim, u, dt) {
   const v = u.base.velocity;
   const sp = Math.hypot(v.x, v.z);
   if (u.charge < 1) u.charge = Math.min(1, u.charge + dt / (c.cooldown || 8));
-  u.charging = u.charge >= 1 && u.target && u.target.alive && gap(u, u.target) > 1.5;
+  u.charging = u.charge >= 1 && (u.ctrl ? Math.hypot(u.ctrl.mx, u.ctrl.mz) > 0.5 : u.target && u.target.alive && gap(u, u.target) > 1.5);
   if (u.charge < 1 || sp < u.def.speed * 0.6 || !u.grounded) return;
   const bp = u.base.position;
   const vx = v.x / sp;
