@@ -9,10 +9,66 @@ function rebuildBridge() { buildBridge(); buildTerrace(); buildTerraceFx(); reba
 
 // one function per upgrade: (ch, em, g) are the solid chunk, the emissive chunk and the part group; collision uses the upgrade id as its tag
 const TERRACE_FX = {
-  tstreet(ch, em, g) { },
-  tstairs(ch, em, g) { },
-  tlanterns(ch, em, g) { },
-  tplanters(ch, em, g) { },
+  // swept paving: glazed pots round both stair feet and under the bridge, a bicycle against the far stair (the litter goes in buildBridge)
+  tstreet(ch, em, g) {
+    reseed(4101);
+    for (const [x, z, r, h, k] of [[0.42, 12.32, 0.2, 0.36, 0], [-0.08, 12.3, 0.15, 0.28, 1], [1.62, 14.02, 0.22, 0.42, 2], [1.05, 14.08, 0.15, 0.3, 0], [-2.35, 12.26, 0.18, 0.34, 2],
+      [-3.45, 12.2, 0.22, 0.44, 1], [-6.62, 12.02, 0.2, 0.4, 0], [-7.15, 12.1, 0.14, 0.27, 2], [-3.85, 14.12, 0.17, 0.32, 1],
+      [-10.95, 1.18, 0.2, 0.4, 1], [-10.42, 1.12, 0.15, 0.28, 0], [-9.75, 1.2, 0.18, 0.34, 2], [-7.2, 1.15, 0.16, 0.3, 0]]) gkPot(ch, x, 0.12, z, r, h, k);
+    P.bike(ch, -0.95, 0.12, 12.3, 0.04, 0x1d2a32); solid(-1.55, -0.35, 0.12, 1.0, 12.08, 12.52, 'tstreet');
+  },
+  // cedar treads, a warm LED under every nosing (both stairs), droplet lanterns at the top and the foot, the テラス席 ↑ board where the cones stood
+  tstairs(ch, em, g) {
+    reseed(4102); const hot = gkHot('tstairsHot');
+    // far stairs: 17 steps, x 1 → -4 (same spacing as stairX / buildBridge); near stairs: x -11.4 → -6.4; front edges face down-stair
+    const flight = (xa, xb, z0, z1) => { const n = 17, dx = (xb - xa) / n, dy = 3.48 / n, zc = (z0 + z1) / 2, w = z1 - z0, sx = -Math.sign(dx);
+      for (let i = 0; i < n; i++) { const x = xa + dx * (i + 0.5), y = 0.12 + dy * (i + 1), fx = x + sx * Math.abs(dx) / 2;
+        ch.box(Math.abs(dx) - 0.012, 0.034, w, new THREE.Color(C.cedar).multiplyScalar(srange(0.78, 1.0)).getHex(), x, y + 0.017, zc); ch.box(0.03, 0.05, w, C.cedarD, fx - sx * 0.015, y + 0.009, zc);
+        hot.box(0.014, 0.016, w - 0.08, 0xffb45a, fx + sx * 0.002, y - 0.026, zc); if (i % 4 === 1) anchor(fx + sx * 0.25, y + 0.05, zc, 0xffa04a, 0.75, 1.5, ['street'], 0.5); } };
+    flight(1.0, -4.0, 12.73, 13.82); flight(-11.4, -6.4, 1.58, 2.42);
+    addBuilt(g, hot).material = GK.hotMat;
+    // lanterns on cedar posts: foot (road side, by the newel) and top (off the parapet end)
+    ch.box(0.08, 1.75, 0.08, C.cedarD, 1.52, 0.12 + 0.875, 12.5); ch.box(0.36, 0.05, 0.05, C.cedarD, 1.36, 1.84, 12.5); gkLantern(ch, 1.22, 1.5, 12.5, 0.17, 0.46, Math.PI / 2 + 0.6);
+    ch.box(0.06, 0.95, 0.06, C.iron, -4.0, 4.62 + 0.47, 12.55); ch.box(0.4, 0.04, 0.04, C.iron, -3.82, 5.55, 12.55); gkLantern(ch, -3.66, 5.22, 12.55, 0.16, 0.44, Math.PI / 2 + 0.4);
+    // chalk A-board, angled to the street
+    const ab = 1.0, az = 12.3, ary = 1.15; P.aBoard(ch, ab, 0.12, az, ary); gkText(g, 'aboard', ab, 0.12, az, ary, 0.42, 0.6, 0.62); solid(ab - 0.3, ab + 0.3, 0.12, 0.95, az - 0.18, az + 0.18, 'tstairs');
+  },
+  // droplet lanterns about every 2 m along both parapets, each on an iron crook leaning out over the street
+  tlanterns(ch, em, g) {
+    reseed(4103);
+    for (const [xw, s, zs] of [[-6.38, -1, [3.5, 5.5, 7.5, 9.5, 11.5, 13.35]], [-4.02, 1, [1.6, 3.5, 5.5, 7.5, 9.5, 11.5]]]) for (const z of zs) {
+      const yt = 4.62, xl = xw + s * 0.36; ch.box(0.035, 1.02, 0.035, C.iron, xw, yt + 0.51, z); ch.bar([xw, yt + 1.0, z], [xl, yt + 1.0, z], 0.03, C.iron); ch.bar([xw, yt + 0.72, z], [xw + s * 0.2, yt + 0.98, z], 0.02, C.iron);
+      gkLantern(ch, xl, yt + 0.68, z, 0.155, 0.42, s > 0 ? Math.PI / 2 : -Math.PI / 2);
+    }
+  },
+  // long cedar planter boxes on both parapets (gaps at the near-stair gate and the far-stair landing): ivy, ferns, small pink and white flowers
+  tplanters(ch, em, g) {
+    reseed(4104);
+    for (const [xc, s, a, b] of GK_RUNS) gkPlanter(ch, xc, s, a, b);
+  },
+  // the near-stair gate becomes a cedar planter wall: tall bamboo, a small stone lantern, the 関係者以外立入禁止 plaque
+  tbamboo(ch, em, g) {
+    reseed(4110); const y = F2, z0 = 1.52, z1 = 2.48, xa = -6.82, xb = -6.34, xc = (xa + xb) / 2, top = y + 0.9;
+    ch.box(xb - xa, top - (y - 0.22), z1 - z0, 0x4a3122, xc, (top + y - 0.22) / 2, (z0 + z1) / 2);
+    for (let k = 0; k < 6; k++) ch.box(0.012, 0.13, z1 - z0 - 0.02, new THREE.Color(C.cedar).multiplyScalar(srange(0.7, 0.95)).getHex(), xb + 0.004, y + 0.08 + k * 0.142, (z0 + z1) / 2); // boards on the deck face
+    ch.box(xb - xa + 0.06, 0.04, z1 - z0 + 0.06, C.cedarL, xc, top + 0.02, (z0 + z1) / 2); ch.box(xb - xa - 0.06, 0.02, z1 - z0 - 0.06, C.soil, xc, top + 0.02, (z0 + z1) / 2);
+    for (let i = 0; i < 11; i++) { const bx = srange(xa + 0.07, xb - 0.07), bz = z0 + 0.06 + (i + srange(0.1, 0.9)) * (z1 - z0 - 0.12) / 11, h = srange(2.2, 2.85); gkCulm(ch, bx, top, bz, h, srange(0.018, 0.028), srange(-0.06, 0.06), srange(-0.05, 0.05)); }
+    for (let i = 0; i < 10; i++) gkCard(1, srange(xa, xb), top + srange(0.0, 0.25), srange(z0, z1), srange(0.3, 0.45), 0, srand() * 6, srange(-0.4, 0.4), spick([0x3f6e35, 0x4f7d48, 0x5a8a3a]));
+    // tōrō on the deck in front of the wall, glowing warm through its firebox
+    const tx = -6.13, tz = 1.97, sc = 0x8a8880, sd = 0x6a6862;
+    ch.box(0.24, 0.05, 0.24, sd, tx, y + 0.025, tz); ch.cyl(0.05, 0.06, 0.2, 8, sc, tx, y + 0.15, tz); ch.box(0.22, 0.04, 0.22, sc, tx, y + 0.27, tz);
+    for (const [ox, oz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) ch.box(0.035, 0.13, 0.035, sc, tx + ox * 0.07, y + 0.355, tz + oz * 0.07);
+    em.box(0.11, 0.1, 0.11, 0xffc070, tx, y + 0.355, tz); ch.cone(0.17, 0.11, 4, sd, tx, y + 0.475, tz, 0, Math.PI / 4); ch.ball(0.035, sc, tx, y + 0.55, tz, 0, 1, 1.3, 1);
+    anchor(tx + 0.15, y + 0.4, tz, 0xffa850, 1.2, 2.6, ['street'], 0.4); anchor(xb - 0.1, top + 0.9, (z0 + z1) / 2, 0xffb060, 0.6, 2.2, ['street'], 0.5);
+    solid(tx - 0.13, tx + 0.13, y, y + 0.6, tz - 0.13, tz + 0.13, 'tbamboo');
+    // plaque on dark wood, on the wall's deck face
+    ch.box(0.025, 0.3, 0.56, 0x241a14, xb + 0.02, y + 0.58, (z0 + z1) / 2); gkText(g, 'plaque', xb + 0.034, y + 0.58, (z0 + z1) / 2, Math.PI / 2, 0.5, 0.25, 0.7, true);
+  },
+  // wisteria racemes hanging over the planters' outer edge and down both fascias, with green ivy runners; kept clear of the signboard and teacup panel
+  twisteria(ch, em, g) {
+    reseed(4111);
+    for (const [xc, s, a, b] of GK_RUNS) gkWisteria(xc, s, a, b);
+  },
   // amber downlights the length of the underside (lighting the road below), and a thin cyan LED strip on both lower fascia edges
   tunder(ch, em, g) {
     const yb = F2 - 0.62; // the slab's underside
@@ -44,8 +100,6 @@ const TERRACE_FX = {
     });
     tagA(anchor(-5.2, yt - 0.4, 9.5, 0xffd2a0, 0.5, 4, ['street'], 0.3), 'terraceFx');
   },
-  tbamboo(ch, em, g) { },
-  twisteria(ch, em, g) { },
   // four copper mushroom heaters along the street-side (west) parapet, between the tables
   heaters(ch, em, g) {
     const CU = C.copper, CD = 0x7a4626, x = -6.1;
