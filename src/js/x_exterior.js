@@ -453,7 +453,7 @@ function buildFacade() {
   if (E.roof) { for (let i = 0; i < 5; i++) { const x = 0.55 + i * 0.36; ch.cyl(0.15, 0.15, 0.62, 12, 0x2a2e34, x, F[3] + 0.31, -0.62); ch.cyl(0.155, 0.155, 0.05, 12, 0x14161a, x, F[3] + 0.6, -0.62); em.cyl(0.152, 0.152, 0.04, 12, new THREE.Color(0.3, 2.0, 2.4), x, F[3] + 0.45, -0.62); em.cyl(0.152, 0.152, 0.02, 12, new THREE.Color(0.2, 1.4, 1.8), x, F[3] + 0.22, -0.62); }
     ch.box(1.95, 0.08, 0.5, 0x1a1c20, 1.27, F[3] + 0.04, -0.62); tagA(anchor(1.27, F[3] + 0.8, 0.0, 0x33e4ff, 1.0, 3.0, ['facade', 'roof'], 0.3), 'facade'); solid(0.35, 2.3, F[3], F[3] + 0.7, -0.9, -0.35, 'extSolid'); }
   // facade-zone fill: the street at night, warmer once the shop is lit
-  tagA(anchor(0, 4.5, 6.0, 0x7a6aa8, 1.1, 12, ['facade'], 0.0), 'facade'); if (lit) tagA(anchor(0, 1.6, 1.6, 0xff9a4a, 1.0, 4.5, ['facade'], 0.25), 'facade');
+  tagA(anchor(0, 4.5, 6.0, 0x5c6c74, 0.7, 12, ['facade'], 0.0), 'facade'); if (lit) tagA(anchor(0, 1.6, 1.6, 0xff9a4a, 1.0, 4.5, ['facade'], 0.25), 'facade');
   addBuilt(g, ch); addBuilt(g, em); if (greenCh) addBuilt(g, greenCh); const wm = addBuilt(g, wt); if (wm) wm.castShadow = false;
   const gm = extGlowMesh(glow, 'facadeGlow'); if (gm) g.add(gm); const pm = extGlowMesh(pool, 'facadePool'); if (pm) g.add(pm);
 }

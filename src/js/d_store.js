@@ -9,11 +9,22 @@ function storeTex(kind, wM) {
     const lights = (col, n) => { x.fillStyle = col; for (let i = 0; i < n; i++) x.fillRect((i + 0.5) * w / n - 18, 6, 36, 4); };
     const people = (n, col, y0) => { x.fillStyle = col; for (let i = 0; i < n; i++) { const px = r(20, w - 20), s = r(0.85, 1.1); x.beginPath(); x.ellipse(px, y0 - 58 * s, 9 * s, 10 * s, 0, 0, 7); x.fill(); x.fillRect(px - 13 * s, y0 - 48 * s, 26 * s, 48 * s); } };
     const shelves = (y0, y1, rows, palette, bg) => { const rh = (y1 - y0) / rows; for (let k = 0; k < rows; k++) { const yy = y0 + k * rh; x.fillStyle = bg; x.fillRect(0, yy + rh - 4, w, 4); let px = 4; while (px < w - 4) { const pw = r(5, 14), ph = r(rh * 0.35, rh * 0.85); x.fillStyle = pk(palette); x.fillRect(px, yy + rh - 4 - ph, pw, ph); px += pw + r(0.5, 3); } } };
-    if (kind === 'konbini') {
-      grad('#f4fbff', '#cfe0ec'); lights('#ffffff', Math.max(3, Math.round(w / 90)));
-      for (let a = 0; a < w; a += 150) { x.fillStyle = '#9fb0bc'; x.fillRect(a + 10, 40, 6, 120); shelves(40, 160, 4, ['#e8402e', '#2e7ad8', '#f0c030', '#38a858', '#ffffff', '#ff8ab0', '#8a5a3a'], '#8a9aa6'); }
-      x.fillStyle = '#d8e4ec'; x.fillRect(w * 0.72, 120, w * 0.26, 72); x.fillStyle = '#2a8aff'; x.fillRect(w * 0.72, 120, w * 0.26, 5); x.fillStyle = '#1a1c22'; x.fillRect(w * 0.82, 104, 26, 16);
-      people(Math.round(w / 260) + 1, 'rgba(40,48,60,.55)', 188);
+    if (kind === 'konbini') { // ほしマート: cool-white 5000 K, rows of bare tubes, a drinks fridge wall, dense bright gondolas
+      grad('#f8fcff', '#dfe9f0'); x.fillStyle = '#ffffff'; for (let i = 0; i < w; i += 64) { x.fillRect(i + 8, 4, 46, 5); x.fillRect(i + 16, 17, 32, 3); x.fillRect(i + 22, 26, 22, 2); }
+      x.fillStyle = '#bcd8ea'; x.fillRect(0, 32, w, 24); for (let i = 2; i < w; i += 5) { x.fillStyle = pk(['#e8402e', '#2e7ad8', '#f0c030', '#38a858', '#ffffff', '#ff8a2a', '#30c0c8', '#f2f2ea']); x.fillRect(i, 36, 3, 16); }
+      shelves(58, 178, 5, ['#e8402e', '#2e7ad8', '#f0c030', '#38a858', '#ffffff', '#ff8ab0', '#8a5a3a', '#ff8a2a', '#7a4ad8', '#30c0c8', '#ffe070'], '#a8b8c4');
+      for (let a = 4; a < w; a += 118) { x.fillStyle = '#eef3f6'; x.fillRect(a, 56, 9, 124); x.fillStyle = '#e8402e'; x.fillRect(a - 2, 80, 13, 7); }
+      x.fillStyle = '#e8eef2'; x.fillRect(0, 178, w, 14); people(1, 'rgba(40,48,60,.4)', 190);
+    } else if (kind === 'office') { // warm 3000 K office: linear ceiling lights, blinds half down, desks, potted plants at the glass
+      grad('#ffdca6', '#9a6a3a'); for (let r = 0; r < 4; r++) { x.fillStyle = r < 2 ? '#fff6dc' : '#ffe8c0'; for (let i = (r % 2) * 50; i < w; i += 120) x.fillRect(i + 10, 5 + r * 8, 92 - r * 16, 3 - (r > 1)); }
+      x.fillStyle = '#c89662'; x.fillRect(0, 44, w, 60); for (let i = 20; i < w; i += 96) { x.fillStyle = '#8a6038'; x.fillRect(i, 58, 40, 46); x.fillStyle = '#e8d8b8'; x.fillRect(i + 4, 62, 14, 18); }
+      for (let i = 0; i < w; i += 84) { x.fillStyle = '#5a3a20'; x.fillRect(i + 6, 122, 70, 10); x.fillStyle = '#1a1a1c'; x.fillRect(i + 22, 104, 26, 18); x.fillStyle = '#7a8a9a'; x.fillRect(i + 24, 106, 22, 13); x.fillStyle = '#4a3220'; x.fillRect(i + 10, 132, 4, 40); x.fillRect(i + 68, 132, 4, 40); }
+      for (let i = 40; i < w; i += 170) { x.fillStyle = '#e4dccc'; x.fillRect(i - 11, 160, 22, 30); x.fillStyle = '#2f5a24'; for (let k = 0; k < 9; k++) { x.beginPath(); x.ellipse(i + r(-16, 16), r(112, 158), r(5, 10), r(9, 16), r(-1, 1), 0, 7); x.fill(); } }
+      x.fillStyle = 'rgba(236,214,172,.6)'; for (let y = 0; y < 84; y += 6) x.fillRect(0, y, w, 3); x.fillStyle = 'rgba(120,90,60,.5)'; x.fillRect(0, 84, w, 3);
+    } else if (kind === 'arcade') { // warm-lit game floor: crane games full of prizes, a change machine
+      grad('#ffc878', '#6a3a1a'); lights('#fff0d0', Math.max(2, Math.round(w / 100)));
+      for (let i = 8; i < w; i += 66) { x.fillStyle = '#ffeccc'; x.fillRect(i, 40, 54, 76); for (let k = 0; k < 10; k++) { x.fillStyle = pk(['#ff7ab0', '#ffe060', '#7ad0ff', '#a0ff90', '#ffffff', '#ff9a40']); x.beginPath(); x.ellipse(i + r(8, 46), r(92, 112), r(4, 8), r(4, 7), 0, 0, 7); x.fill(); } x.fillStyle = pk(['#c83a3a', '#2a5aa8', '#e8a020', '#8a3ab0']); x.fillRect(i, 116, 54, 64); x.fillRect(i, 32, 54, 9); }
+      people(Math.round(w / 200) + 1, 'rgba(40,20,10,.6)', 190);
     } else if (kind === 'lobby') {
       grad('#7a5228', '#3a2410'); lights('#ffd8a0', Math.max(2, Math.round(w / 120)));
       for (let i = 0; i < w * 0.45; i += 18) for (let j = 0; j < 6; j++) { x.fillStyle = (i + j) % 3 ? '#5a3a1e' : '#6a4a2a'; x.fillRect(10 + i, 40 + j * 18, 16, 16); x.fillStyle = '#d8b880'; x.fillRect(22 + i, 46 + j * 18, 2, 4); }

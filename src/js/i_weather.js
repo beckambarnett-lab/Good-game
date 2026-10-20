@@ -16,25 +16,29 @@ const SPL_N = 700;
 function initRain() {
   RAIN_N = Q.rain; rainPos = new Float32Array(RAIN_N * 6); rainCol = new Float32Array(RAIN_N * 8); rainSt = new Float32Array(RAIN_N * 4);
   rainGeo = new THREE.BufferGeometry(); rainGeo.setAttribute('position', new THREE.BufferAttribute(rainPos, 3).setUsage(THREE.DynamicDrawUsage)); rainGeo.setAttribute('color', new THREE.BufferAttribute(rainCol, 4).setUsage(THREE.DynamicDrawUsage));
-  rainLines = new THREE.LineSegments(rainGeo, new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, depthWrite: false, fog: true })); rainLines.frustumCulled = false; rainLines.renderOrder = 3; scene.add(rainLines);
+  // additive: a streak only shows where light catches it (in front of windows, lamps, neon) and never darkens what is behind it
+  rainLines = new THREE.LineSegments(rainGeo, new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false })); rainLines.frustumCulled = false; rainLines.renderOrder = 3; scene.add(rainLines);
   for (let i = 0; i < RAIN_N; i++) resetDrop(i, false);
   splPos = new Float32Array(SPL_N * 3); splVel = new Float32Array(SPL_N * 3); splLife = new Float32Array(SPL_N); for (let i = 0; i < SPL_N; i++) splPos[i * 3 + 1] = -99;
   splGeo = new THREE.BufferGeometry(); splGeo.setAttribute('position', new THREE.BufferAttribute(splPos, 3).setUsage(THREE.DynamicDrawUsage));
-  splPts = new THREE.Points(splGeo, new THREE.PointsMaterial({ size: 0.035, map: DOT_TEX, transparent: true, depthWrite: false, color: 0xcfe2f0, opacity: 0.7 })); splPts.frustumCulled = false; scene.add(splPts);
+  splPts = new THREE.Points(splGeo, new THREE.PointsMaterial({ size: 0.016, map: DOT_TEX, transparent: true, depthWrite: false, color: 0x9aa8b0, opacity: 0.3 })); splPts.frustumCulled = false; scene.add(splPts);
   const ringGeo = new THREE.RingGeometry(0.85, 0.92, 18); ringGeo.rotateX(-Math.PI / 2);
   RIP.mesh = new THREE.InstancedMesh(ringGeo, new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: true }), 60); RIP.mesh.frustumCulled = false; scene.add(RIP.mesh);
   for (let i = 0; i < 60; i++) { ripples.push({ i, t: 0, life: 0.6, big: 1, on: false, p: new THREE.Vector3() }); RIP.mesh.setMatrixAt(i, RIP.zero); RIP.mesh.setColorAt(i, new THREE.Color(0, 0, 0)); }
 }
 const _cp = new THREE.Vector3();
-function resetDrop(i, top) { const o = i * 4; const a = Math.random() * Math.PI * 2, r = 1.2 + Math.sqrt(Math.random()) * 10.6; rainSt[o] = _cp.x + Math.cos(a) * r; rainSt[o + 2] = _cp.z + Math.sin(a) * r; rainSt[o + 1] = _cp.y + (top ? rand(8, 14) : rand(-4, 14)); const rf = roofAt(rainSt[o], rainSt[o + 2]); if (rf > 0 && rainSt[o + 1] < rf) rainSt[o + 1] = rf + rand(0.2, 6); rainSt[o + 3] = rand(11, 15); }
+// drops live in a tight cylinder around the camera (r 1..9.5, 6 m below to 10 m above): the same count as before reads about twice as dense; past it the fog does the distant rain
+const RAIN_R = 9.5;
+function resetDrop(i, top) { const o = i * 4; const a = Math.random() * Math.PI * 2, r = 1.0 + Math.sqrt(Math.random()) * (RAIN_R - 1.0); rainSt[o] = _cp.x + Math.cos(a) * r; rainSt[o + 2] = _cp.z + Math.sin(a) * r; rainSt[o + 1] = _cp.y + (top ? rand(6, 10) : rand(-6, 10)); const rf = roofAt(rainSt[o], rainSt[o + 2]); if (rf > 0 && rainSt[o + 1] < rf) rainSt[o + 1] = rf + rand(0.2, 6); rainSt[o + 3] = rand(11, 15); }
 let splHead = 0;
-function spawnSplash(x, y, z, n) { for (let k = 0; k < n; k++) { const i = splHead; splHead = (splHead + 1) % SPL_N; splPos[i * 3] = x; splPos[i * 3 + 1] = y + 0.01; splPos[i * 3 + 2] = z; const a = Math.random() * 6.28, sp = rand(0.3, 0.9); splVel[i * 3] = Math.cos(a) * sp; splVel[i * 3 + 1] = rand(0.9, 1.9); splVel[i * 3 + 2] = Math.sin(a) * sp; splLife[i] = rand(0.15, 0.3); } }
+// tiny low splashes that stay on the surface (a few cm), never a spray of dots in the air
+function spawnSplash(x, y, z, n) { for (let k = 0; k < n; k++) { const i = splHead; splHead = (splHead + 1) % SPL_N; splPos[i * 3] = x; splPos[i * 3 + 1] = y + 0.01; splPos[i * 3 + 2] = z; const a = Math.random() * 6.28, sp = rand(0.12, 0.35); splVel[i * 3] = Math.cos(a) * sp; splVel[i * 3 + 1] = rand(0.35, 0.75); splVel[i * 3 + 2] = Math.sin(a) * sp; splLife[i] = rand(0.1, 0.18); } }
 function spawnRipple(x, y, z, big) { const r = ripples.find(q => !q.on); if (!r) return; r.p.set(x, y + 0.006, z); r.t = 0; r.life = rand(0.45, 0.8); r.big = big || 1; r.on = true; }
 function inPuddle(x, z) { for (const p of CITY.puddles) { const qx = (x - p[0]) / p[3], qz = (z - p[2]) / p[4]; if (qx * qx + qz * qz < 0.6) return p; } return null; }
 // light at a rain drop: nearest anchors (cheap version)
 const _rc = [0, 0, 0]; let RAIN_LIGHTS = [];
 function refreshRainLights() { RAIN_LIGHTS = ANCHORS.filter(a => (a.z.includes('street') || a.z.includes('alley')) && Math.abs(a.p[0] - _cp.x) < 18 && Math.abs(a.p[2] - _cp.z) < 18 && a.i > 0.5); }
-function rainLight(x, y, z) { let r = 0.035, g = 0.042, b = 0.065; for (const a of RAIN_LIGHTS) { const dx = a.p[0] - x, dy = a.p[1] - y, dz = a.p[2] - z; const d2 = dx * dx + dy * dy * 0.6 + dz * dz; const rr = a.r * 0.7; if (d2 > rr * rr) continue; const k = (1 - Math.sqrt(d2) / rr); const kk = k * k * a.i * 0.7; r += a.c.r * kk; g += a.c.g * kk; b += a.c.b * kk; } _rc[0] = r; _rc[1] = g; _rc[2] = b; }
+function rainLight(x, y, z) { let r = 0.03, g = 0.037, b = 0.043; for (const a of RAIN_LIGHTS) { const dx = a.p[0] - x, dy = a.p[1] - y, dz = a.p[2] - z; const d2 = dx * dx + dy * dy * 0.6 + dz * dz; const rr = a.r * 0.7; if (d2 > rr * rr) continue; const k = (1 - Math.sqrt(d2) / rr); const kk = k * k * a.i * 0.4; r += a.c.r * kk; g += a.c.g * kk; b += a.c.b * kk; } _rc[0] = r; _rc[1] = g; _rc[2] = b; }
 let rainLightT = 0;
 function updateRain(dt) {
   _cp.copy(camera.position); const amt = WX.rain, active = Math.floor(RAIN_N * clamp(amt, 0.05, 1)); const wind = 0.4 + Math.sin(time * 0.3) * 0.4 + amt * 0.6;
@@ -45,22 +49,23 @@ function updateRain(dt) {
     if (i >= active) { rainCol[c + 3] = 0; rainCol[c + 7] = 0; continue; }
     let x = rainSt[o], y = rainSt[o + 1], z = rainSt[o + 2]; const v = rainSt[o + 3];
     y -= v * dt; x += wind * dt;
-    const dx = x - _cp.x, dz = z - _cp.z; if (dx * dx + dz * dz > 12 * 12 || y < _cp.y - 6) { resetDrop(i, true); continue; }
+    const dx = x - _cp.x, dz = z - _cp.z, dd = dx * dx + dz * dz; if (dd > RAIN_R * RAIN_R + 1 || y < _cp.y - 6) { resetDrop(i, true); continue; }
     const gy = surfaceAt(x, z, y + 0.5);
-    if (y < gy) { if (dx * dx + dz * dz < 64 && !inside) { if (Math.random() < 0.4) spawnSplash(x, gy, z, 2); if (gy < 0.2 && inPuddle(x, z) && Math.random() < 0.7) spawnRipple(x, gy, z, 1); } resetDrop(i, true); continue; }
+    if (y < gy) { if (dd < 64 && !inside) { if ((gy < 0.2 || Math.abs(gy + 1.6 - _cp.y) < 0.6) && Math.random() < 0.4) spawnSplash(x, gy, z, 2); if (gy < 0.2 && inPuddle(x, z) && Math.random() < 0.7) spawnRipple(x, gy, z, 1); } resetDrop(i, true); continue; }
     rainSt[o] = x; rainSt[o + 1] = y; rainSt[o + 2] = z;
-    const len = 0.1 + v * 0.011, sl = wind / v;
+    const len = 0.03 + v * 0.0037, sl = wind / v;
     rainPos[p] = x; rainPos[p + 1] = y; rainPos[p + 2] = z; rainPos[p + 3] = x - sl * len; rainPos[p + 4] = y + len; rainPos[p + 5] = z;
     if ((i & 3) === (frameN & 3)) { rainLight(x, y, z); rainCol[c] = _rc[0]; rainCol[c + 1] = _rc[1]; rainCol[c + 2] = _rc[2]; rainCol[c + 4] = _rc[0]; rainCol[c + 5] = _rc[1]; rainCol[c + 6] = _rc[2]; }
-    rainCol[c + 3] = (inside ? 0.22 : 0.4) + WX.flash * 0.3; rainCol[c + 7] = 0;
+    // depth fade: the closest drops (big smears across the lens), the edge of the volume and drops high overhead (seen end-on they read as dots) all fall away
+    { const d = Math.sqrt(dd); rainCol[c + 3] = ((inside ? 0.24 : 0.45) + WX.flash * 0.3) * smoothstep(0.8, 2.4, d) * (1 - 0.7 * smoothstep(4.0, RAIN_R, d)) * (1 - 0.8 * smoothstep(2.0, 8.0, y - _cp.y)); } rainCol[c + 7] = 0;
   }
   if (WX.flash > 0.05) for (let i = 0; i < active; i++) { const c = i * 8; rainCol[c] = Math.max(rainCol[c], WX.flash); rainCol[c + 1] = Math.max(rainCol[c + 1], WX.flash); rainCol[c + 2] = Math.max(rainCol[c + 2], WX.flash * 1.1); }
   rainGeo.attributes.position.needsUpdate = true; rainGeo.attributes.color.needsUpdate = true;
   for (let i = 0; i < SPL_N; i++) { if (splLife[i] <= 0) continue; splLife[i] -= dt; if (splLife[i] <= 0) { splPos[i * 3 + 1] = -99; continue; } splVel[i * 3 + 1] -= 9.8 * dt; splPos[i * 3] += splVel[i * 3] * dt; splPos[i * 3 + 1] += splVel[i * 3 + 1] * dt; splPos[i * 3 + 2] += splVel[i * 3 + 2] * dt; }
-  splGeo.attributes.position.needsUpdate = true; splPts.material.opacity = 0.35 + 0.4 * amt;
+  splGeo.attributes.position.needsUpdate = true; splPts.material.opacity = 0.12 + 0.18 * amt;
   // ambient ripples in puddles near the camera
   if (!inside) { let n = 30 * amt * dt; while (n > 0) { if (Math.random() < n) { const p = pick(CITY.puddles); if (Math.abs(p[0] - _cp.x) < 16 && Math.abs(p[2] - _cp.z) < 16) { const a = Math.random() * 6.28, d = Math.sqrt(Math.random()) * 0.7; spawnRipple(p[0] + Math.cos(a) * p[3] * d, p[1], p[2] + Math.sin(a) * p[4] * d, rand(0.7, 1.3)); } } n -= 1; } }
-  for (const r of ripples) { if (!r.on) continue; r.t += dt; const q = r.t / r.life; if (q >= 1) { r.on = false; RIP.mesh.setMatrixAt(r.i, RIP.zero); continue; } const sc = (0.03 + 0.17 * q) * r.big; RIP.m.makeScale(sc, sc, sc).setPosition(r.p); RIP.mesh.setMatrixAt(r.i, RIP.m); RIP.c.setRGB(0.2, 0.24, 0.32).multiplyScalar((1 - q) * (1 - q)); RIP.mesh.setColorAt(r.i, RIP.c); }
+  for (const r of ripples) { if (!r.on) continue; r.t += dt; const q = r.t / r.life; if (q >= 1) { r.on = false; RIP.mesh.setMatrixAt(r.i, RIP.zero); continue; } const sc = (0.03 + 0.17 * q) * r.big; RIP.m.makeScale(sc, sc, sc).setPosition(r.p); RIP.mesh.setMatrixAt(r.i, RIP.m); RIP.c.setRGB(0.1, 0.12, 0.14).multiplyScalar((1 - q) * (1 - q)); RIP.mesh.setColorAt(r.i, RIP.c); }
   RIP.mesh.instanceMatrix.needsUpdate = true; if (RIP.mesh.instanceColor) RIP.mesh.instanceColor.needsUpdate = true;
   updateDrips(dt, amt);
 }
@@ -91,13 +96,21 @@ function glassPane(group, w, h, x, y, z, ry, tint) {
 }
 function updateGlass(dt) { for (const g of GLASS_MATS) { g.t.offset.y += g.sp * dt * (0.4 + WX.rain); { const k = playerIndoors() ? 0.35 : 1; g.m.color.setRGB((0.2 + 0.25 * WX.rain) * k, (0.24 + 0.25 * WX.rain) * k, (0.32 + 0.25 * WX.rain) * k); } } }
 /* ---------- wet reflection pass ---------- */
-function initReflection() { if (!Q.refl) { WET_U.uReflOn.value = 0; return; } REFL.rt = new THREE.WebGLRenderTarget(Q.refl, Q.refl, { type: THREE.HalfFloatType }); WET_U.tRefl.value = REFL.rt.texture; WET_U.uReflOn.value = 1; REFL.cam.layers.set(1); }
+function initReflection() { if (!Q.refl) { WET_U.uReflOn.value = 0; return; } const rt = d => new THREE.WebGLRenderTarget(Q.refl, Q.refl, { type: THREE.HalfFloatType, depthBuffer: d }); REFL.rt = rt(true); REFL.rb = rt(false); REFL.rs = rt(false); WET_U.tRefl.value = REFL.rt.texture; WET_U.tReflF.value = REFL.rb.texture; WET_U.tReflS.value = REFL.rs.texture; WET_U.uReflOn.value = 1; REFL.cam.layers.set(1); }
+// vertical-only smear of the mirror (wet asphalt stretches lights into streaks toward the viewer), done at reflection resolution:
+// a fine 8-tap box (its taps alternate half a texel sideways: a free [1 2 1] horizontal filter that hides the mirror's stair-stepped edges),
+// then a coarse 8-tap tent, so the long streak is continuous instead of a ladder of ghost copies. Steps are in uv, so every tier smears alike.
+const REFL_BLUR = new ShaderPass({
+  uniforms: { tDiffuse: { value: null }, uStep: { value: 0 }, uTent: { value: 0 }, uX: { value: 0 } },
+  vertexShader: 'varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
+  fragmentShader: 'uniform sampler2D tDiffuse; uniform float uStep,uTent,uX; varying vec2 vUv; void main(){ vec3 c=vec3(0.0); float ws=0.0; for(int i=0;i<8;i++){ float o=float(i)-3.5; float w=1.0-uTent*abs(o)/4.5; c+=texture2D(tDiffuse,vUv+vec2(mod(float(i),2.0)<0.5?-uX:uX,o*uStep)).rgb*w; ws+=w; } gl_FragColor=vec4(c/ws,1.0); }',
+});
 const _rv = new THREE.Vector3(), _rt = new THREE.Vector3(), _rl = new THREE.Vector3(), _rm = new THREE.Matrix4(), _rn = new THREE.Vector3(0, 1, 0), _rcp = new THREE.Vector3();
 // keep the wet-road reflection in step with the quality tier: auto-quality can drop to Low (no reflection pass) or climb back,
 // and without this the last reflection stayed frozen on the road
 function syncReflection() {
   if (!Q.refl) { WET_U.uReflOn.value = 0; return; }
-  if (!REFL.rt) initReflection(); else if (REFL.rt.width !== Q.refl) REFL.rt.setSize(Q.refl, Q.refl);
+  if (!REFL.rt) initReflection(); else if (REFL.rt.width !== Q.refl) for (const t of [REFL.rt, REFL.rb, REFL.rs]) t.setSize(Q.refl, Q.refl);
 }
 function renderReflection() {
   if (!REFL.rt) return; _rcp.setFromMatrixPosition(camera.matrixWorld); if (_rcp.y < 0.05 || (playerIndoors() && player.pos.y > 2)) { WET_U.uReflOn.value = 0; return; } WET_U.uReflOn.value = 1;
@@ -105,7 +118,9 @@ function renderReflection() {
   vc.position.copy(_rv); vc.up.set(0, 1, 0).applyMatrix4(_rm).reflect(_rn); vc.lookAt(_rt); vc.far = camera.far; vc.updateMatrixWorld(); vc.projectionMatrix.copy(camera.projectionMatrix);
   REFL.mat.set(0.5, 0, 0, 0.5, 0, 0.5, 0, 0.5, 0, 0, 0.5, 0.5, 0, 0, 0, 1); REFL.mat.multiply(vc.projectionMatrix); REFL.mat.multiply(vc.matrixWorldInverse);
   const fog = scene.fog, bg = scene.background; scene.fog = null; sky.visible = false; clouds.visible = false;
-  renderer.setRenderTarget(REFL.rt); renderer.setClearColor(0x000000, 1); renderer.clear(); renderer.render(scene, vc); renderer.setRenderTarget(null); renderer.setClearColor(0x05070f, 1);
+  renderer.setRenderTarget(REFL.rt); renderer.setClearColor(0x000000, 1); renderer.clear(); renderer.render(scene, vc);
+  const U = REFL_BLUR.uniforms; U.uStep.value = 1.5 / 512; U.uTent.value = 0; U.uX.value = 0.5 / Q.refl; REFL_BLUR.render(renderer, REFL.rb, REFL.rt); U.uStep.value = 14 / 512; U.uTent.value = 1; U.uX.value = 0; REFL_BLUR.render(renderer, REFL.rs, REFL.rb);
+  renderer.setRenderTarget(null); renderer.setClearColor(0x05070f, 1);
   scene.fog = fog; sky.visible = true; clouds.visible = true;
   (REFL.cp || (REFL.cp = new THREE.Vector3())).copy(camera.position); (REFL.cq || (REFL.cq = new THREE.Quaternion())).copy(camera.quaternion);
 }
@@ -130,13 +145,13 @@ function updateWeather(dt) {
   if (forceWeather) { WX.target = forceWeather.rain; WX.storm = !!forceWeather.storm; WX.name = forceWeather.name; WX.mm = forceWeather.mm; }
   else { S.wt += dt; const w = weatherAt(S.wt); WX.i = w.i; WX.target = w.w.rain; WX.storm = !!w.w.storm; WX.name = w.w.name; WX.mm = w.w.mm; }
   WX.rain = damp(WX.rain, WX.target, 0.3, dt);
-  scene.fog.density = lerp(0.011, 0.022, WX.rain) * (playerIndoors() ? 0.5 : 1);
+  scene.fog.density = lerp(0.012, 0.025, WX.rain) * (playerIndoors() ? 0.5 : 1);
   // inside the ground-floor shop the cool sky/moon fill would wash the warm tungsten room lavender: fade it out
   INDOOR.k = damp(INDOOR.k, zoneAt(camera.position) === 'g0' ? 1 : 0, 4, dt);
-  hemi.intensity = lerp(0.5, 0.1, INDOOR.k) + WX.flash * 3; moon.intensity = lerp(0.22, 0.03, INDOOR.k) + WX.flash * 2.4;
+  hemi.intensity = lerp(0.2, 0.06, INDOOR.k) + WX.flash * 3; moon.intensity = lerp(0.09, 0.02, INDOOR.k) + WX.flash * 2.4;
   gradePass.uniforms.uIn.value = INDOOR.k;
   gradePass.uniforms.uFlash.value = WX.flash * 0.35;
-  clouds.material.color.setRGB(0.1 + WX.flash * 1.6, 0.07 + WX.flash * 1.6, 0.16 + WX.flash * 2); cloudTex.offset.x += dt * 0.002 * (1 + WX.rain);
+  clouds.material.color.setRGB(0.045 + WX.flash * 1.6, 0.04 + WX.flash * 1.6, 0.065 + WX.flash * 2); cloudTex.offset.x += dt * 0.002 * (1 + WX.rain);
   updateLightning(dt);
 }
 

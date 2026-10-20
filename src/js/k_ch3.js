@@ -50,13 +50,34 @@ function buildPopup() {
   const ch = new Chunk('popup', 'far'), em = new Chunk('popupEm', 'far', { emis: true }); ch.box(2.4, 2.4, 1.2, 0x1a1c22, 7, 1.32, 13.0); em.box(2.2, 0.8, 0.02, 0xff3d9a, 7, 2.2, 12.39); em.box(1.6, 1.0, 0.02, 0x3a1030, 7, 1.0, 12.39);
   addBuilt(g, ch); addBuilt(g, em); neon('KAIUN BREW ¥99', 7, 2.75, 12.36, Math.PI, 0.3, 'mag', { px: 64, k: 2.6, lit: 0.6, group: g, flicker: true }, ['street', 'far']);
 }
-// before the chapter-3 deck: the balcony's west rail is closed, and the bridge's near landing has its own end rail
+// before the chapter-3 deck: the balcony's west rail is closed, the bridge's shop end is barred, and the stub landing between them
+// (where Gen-san's deck goes) holds the ward's 立入禁止 barrier facing the shop, a cone, a dead plant in a cracked pot and a knocked-over chair
 function buildPreDeck() {
   const g = part('preDeck'); if (S.ch >= 3) return;
-  const ch = new Chunk('preDeck', 'street'); P.railing(ch, -2.65, 0.05, -2.65, 1.2, F2, 1.0, 0x2a2c31);
-  ch.box(2.4, 1.0, 0.06, 0x8a8e94, -5.2, F2 + 0.5, 1.04); ch.box(2.4, 0.06, 0.1, 0x55595e, -5.2, F2 + 1.03, 1.04);
-  addBuilt(g, ch);
+  reseed(3013); const T = bridgeTex(), ch = new Chunk('preDeck', 'street'), tq = new TQ('street'), rust = 0x5e3826, bx = -3.9; P.railing(ch, -2.65, 0.05, -2.65, 1.2, F2, 1.0, 0x2a2c31);
+  ch.box(3.7, 0.1, 0.9, 0x44474c, -4.55, F2 - 0.05, 0.55);
+  // end rail across the bridge: rusted frame with a striped board, facing the deck
+  for (const x of [-6.3, -5.2, -4.1]) ch.box(0.05, 1.05, 0.05, rust, x, F2 + 0.525, 1.04);
+  ch.bar([-6.35, F2 + 1.02, 1.04], [-4.05, F2 + 1.02, 1.04], 0.045, rust, 8); ch.bar([-6.35, F2 + 0.15, 1.04], [-4.05, F2 + 0.15, 1.04], 0.035, rust, 8);
+  ch.box(2.12, 0.38, 0.03, 0x1e1c1a, -5.2, F2 + 0.62, 1.04); for (const [z, ry] of [[1.057, 0], [1.023, Math.PI]]) tq.q(T.hazard, -5.2, F2 + 0.62, z, 2.1, 0.36, 0, ry, [0, 0, 1.45, 1]);
+  // the barrier: striped hazard board on a rusted frame, the red sign bolted above it
+  for (const z of [0.14, 0.96]) ch.box(0.05, 1.46, 0.05, rust, bx, F2 + 0.73, z);
+  ch.bar([bx, F2 + 1.44, 0.12], [bx, F2 + 1.44, 0.98], 0.04, rust, 8); ch.bar([bx, F2 + 0.2, 0.12], [bx, F2 + 0.2, 0.98], 0.035, rust, 8);
+  ch.box(0.03, 0.46, 0.84, 0x1e1c1a, bx, F2 + 0.7, 0.55); for (const s of [-1, 1]) tq.q(T.hazard, bx + s * 0.017, F2 + 0.7, 0.55, 0.82, 0.44, 0, s * Math.PI / 2, [0, 0, 0.47, 1]);
+  ch.box(0.03, 0.31, 0.8, 0x2a2624, bx, F2 + 1.19, 0.55); tq.q(T.sign, bx + 0.017, F2 + 1.19, 0.55, 0.76, 0.28, 0, Math.PI / 2);
+  for (const z of [0.3, 0.8]) for (const y of [F2 + 1.08, F2 + 1.3]) ch.ball(0.012, 0x3a2a22, bx + 0.02, y, z);
+  // on the landing: a cone, a cracked white pot with a dead bare-twig plant, a white plastic chair on its side with a snapped leg
+  P.cone(ch, -2.92, F2, 0.8);
+  { const x = -3.58, z = 0.3, w = 0xd6d3cb; ch.cyl(0.14, 0.11, 0.26, 10, w, x, F2 + 0.13, z); ch.torus(0.135, 0.012, 10, 0xc6c2b8, x, F2 + 0.26, z, Math.PI / 2); ch.cyl(0.125, 0.125, 0.02, 10, 0x2a2018, x, F2 + 0.235, z);
+    ch.box(0.004, 0.17, 0.012, 0x2a2826, x + 0.128, F2 + 0.14, z + 0.03, 0, 0, 0.25); ch.box(0.004, 0.08, 0.01, 0x2a2826, x + 0.12, F2 + 0.08, z - 0.02, 0, 0, -0.5); ch.box(0.05, 0.03, 0.03, 0x3a3632, x + 0.11, F2 + 0.255, z - 0.06);
+    for (let i = 0; i < 8; i++) { const a = i / 8 * 6.28 + srand(), L = srange(0.3, 0.6), lean = srange(0.15, 0.45), b = [x + Math.cos(a) * 0.03, F2 + 0.24, z + Math.sin(a) * 0.03], e = [b[0] + Math.cos(a) * L * lean, b[1] + L, b[2] + Math.sin(a) * L * lean];
+      ch.bar(b, e, 0.012, 0x4a3a2c); for (let k = 0; k < 2; k++) { const t = srange(0.4, 0.8), p = [lerp(b[0], e[0], t), lerp(b[1], e[1], t), lerp(b[2], e[2], t)], a2 = a + srange(-1.2, 1.2), l2 = L * srange(0.25, 0.45); ch.bar(p, [p[0] + Math.cos(a2) * l2 * 0.6, p[1] + l2 * 0.7, p[2] + Math.sin(a2) * l2 * 0.6], 0.007, 0x54412f); } } }
+  atR(ch, -3.22, F2 + 0.235, 0.6, 0, 1.3, Math.PI / 2, () => { const w = 0xd9d7cf; ch.box(0.44, 0.035, 0.42, w, 0, 0.42, 0); ch.box(0.44, 0.36, 0.03, w, 0, 0.64, -0.2, -0.12);
+    for (const [sx, sz, L] of [[-0.19, -0.17, 1], [0.19, -0.17, 1], [-0.19, 0.17, 1], [0.19, 0.17, 0.35]]) ch.bar([sx, 0.41, sz], [lerp(sx, sx * 1.12, L), 0.41 - 0.41 * L, lerp(sz, sz * 1.12, L)], 0.03, w);
+    for (const sx of [-0.21, 0.21]) { ch.box(0.03, 0.03, 0.38, w, sx, 0.6, 0); ch.box(0.03, 0.18, 0.03, w, sx, 0.51, 0.17); } });
+  addBuilt(g, ch); tq.build(g);
 }
+
 HOOK.upper.push(() => { buildPreDeck(); buildYatai(); buildTerrace(); buildPopup(); balconyZones(); });
 function balconyZones() { clearTag('balcony'); if (S.ch >= 2) { zoneFlat(0.8, 1.9, -0.26, 0.06, F2, 'balcony'); zoneFlat(-2.5, 2.5, 0.05, 1.15, F2, 'balcony'); } }
 HOOK.waypoints.push(() => {

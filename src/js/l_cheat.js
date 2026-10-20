@@ -65,3 +65,10 @@ function openCheats() {
 addEventListener('keydown', e => { if (e.code === 'Backquote' || e.code === 'F8') { e.preventDefault(); if (CHEAT.open) closePanel(); else openCheats(); } });
 { let taps = [], el = $('#res'); if (el) el.addEventListener('pointerdown', () => { const t = performance.now(); taps = taps.filter(q => t - q < 700); taps.push(t); if (taps.length >= 3) { taps = []; openCheats(); } }); }
 
+/* ---- debug photo mode (only with window.__szDebug): the gauntlet harness parks the camera on a reference angle ----
+   window.__szPhoto = { pos: [x, y, z], at: [x, y, z], fov: deg, roll: rad }; hands are hidden while it is set */
+function photoCam() {
+  const p = window.__szPhoto; camera.position.set(p.pos[0], p.pos[1], p.pos[2]); camera.up.set(0, 1, 0); camera.lookAt(p.at[0], p.at[1], p.at[2]);
+  if (p.roll) camera.rotateZ(p.roll);
+  camera.fov = p.fov || 60; camera.updateProjectionMatrix(); hudPass.enabled = false;
+}

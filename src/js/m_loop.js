@@ -48,6 +48,7 @@ const CAMS = { pos: new THREE.Vector3(), q: new THREE.Quaternion(), focusT: 0, f
 const _ce = new THREE.Euler(0, 0, 0, 'YXZ'), _cq = new THREE.Quaternion(), _cv = new THREE.Vector3();
 let dialogLook = null; // point to ease view toward during dialogue
 function updateCamera(dt) {
+  if (DEBUG && window.__szPhoto) { photoCam(); return; } // gauntlet harness: fixed reference camera (l_cheat.js)
   // look input
   if (!player.focus && !UI.modal && started && !paused) {
     const sens = SET.sens; player.yaw -= look.dx * 0.0022 * sens; player.pitch -= look.dy * 0.0022 * sens * (SET.invert ? -1 : 1);
@@ -225,7 +226,7 @@ function frame(now) {
 const nextFrame = () => new Promise(r => requestAnimationFrame(() => r()));
 async function loadFonts() {
   if (!document.fonts || !document.fonts.load) return;
-  const ps = [['48px "Dela Gothic One"', '茶房雫営業中八番線歩道橋カラオケゲームセンター立入禁止開運薬居酒屋雨宿りラーメン24時間足元注意パチンコカプセルホテル書店そば石川雀荘'], ['32px "DotGothic16"', 'AMAGASE 八番線 0123'], ['32px "Yusei Magic"', 'お品書き煎茶玄米茶玉露抹茶ほうじ茶一期一会¥0123456789雫ブレンド'], ['20px "Zen Kaku Gothic New"', 'Shizuku 雫']];
+  const ps = [['48px "Dela Gothic One"', '茶房雫営業中八番線歩道橋カラオケゲームセンター立入禁止開運薬居酒屋雨宿りラーメン24時間足元注意パチンコカプセルホテル書店そば石川雀荘ほしマートGARCADEUFO CATCHER'], ['32px "DotGothic16"', 'AMAGASE 八番線 0123'], ['32px "Yusei Magic"', 'お品書き煎茶玄米茶玉露抹茶ほうじ茶一期一会¥0123456789雫ブレンド'], ['20px "Zen Kaku Gothic New"', 'Shizuku 雫 抹茶ラテレモンティー冷たいNEW¥0123456789']];
   await Promise.race([Promise.all(ps.map(p => document.fonts.load(p[0], p[1]).catch(() => { }))), new Promise(r => setTimeout(r, 3500))]);
 }
 function setLoad(k, msg) { $('#loadBar').style.width = Math.round(k * 100) + '%'; if (msg) $('#loadTxt').textContent = msg; }

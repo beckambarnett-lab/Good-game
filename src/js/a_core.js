@@ -44,7 +44,7 @@ const RECIPES = [
 ];
 const RID = Object.fromEntries(RECIPES.map((r, i) => [r.id, i]));
 const MASTER_N = 8;
-// upgrades: space, cost, install job, chapter, appeal, effect
+// upgrades: space, cost, install job, chapter, appeal, effect; bridge: n marks the n-th 雫テラス bridge upgrade (the gauntlet harness builds its stages from these)
 const UPG = [
   { id: 'barrel2', name: 'Barrel extension', space: 'alley', cost: 2500, job: 'align', ch: 1, ap: 0, fx: 'A stacked tank on the rain barrel. +40 L storage.' },
   { id: 'gutter', name: 'New gutter and downpipe', space: 'facade', cost: 4000, job: 'hang', ch: 1, ap: 1, fx: 'Replace the rusted downpipe. +50% rain catchment.' },
@@ -68,8 +68,17 @@ const UPG = [
   { id: 'galley', name: 'Upstairs galley kitchen', space: 'f2', cost: 18000, job: 'bolt', ch: 2, ap: 1, fx: 'Two staff stations on the second floor. Staff there can whisk matcha too.' },
   { id: 'dumbwaiter', name: 'Dumbwaiter', space: 'ground', cost: 12000, job: 'wire', ch: 2, ap: 0, fx: 'A lift for trays between floors: staff get around 30% faster.' },
   { id: 'tetsubin', name: 'Cast-iron tetsubin', space: 'ground', cost: 24000, job: 'place', ch: 2, ap: 0, fx: 'Brews 6 cups per pot.' },
-  { id: 'heaters', name: 'Terrace heaters', space: 'terrace', cost: 10000, job: 'wire', ch: 3, ap: 1, fx: 'Terrace guests wait 30 s longer.' },
-  { id: 'strings', name: 'Bridge string lights', space: 'terrace', cost: 9000, job: 'hang', ch: 3, ap: 4, fx: 'Lights strung over the street.' },
+  { id: 'heaters', name: 'Terrace heaters', space: 'terrace', bridge: 5, cost: 10000, job: 'wire', ch: 3, ap: 1, fx: 'Copper patio heaters along the parapet. Terrace guests wait 30 s longer.' },
+  { id: 'strings', name: 'Bridge string lights', space: 'terrace', bridge: 6, cost: 9000, job: 'hang', ch: 3, ap: 4, fx: 'Lights strung over the street.' },
+  { id: 'tstreet', name: 'Sidewalk planters', space: 'terrace', bridge: 1, cost: 5000, job: 'place', ch: 3, ap: 1, fx: 'Sweep the litter from around the footbridge stairs and set out potted plants.' },
+  { id: 'tstairs', name: 'Terrace stairs', space: 'terrace', bridge: 2, cost: 7000, job: 'bolt', ch: 3, ap: 2, fx: 'Cedar treads with step lights, lanterns top and bottom, and a テラス席 board where the cones stood.' },
+  { id: 'tlanterns', name: 'Droplet lanterns', space: 'terrace', bridge: 3, cost: 6000, job: 'hang', ch: 3, ap: 2, fx: 'Paper lanterns with the water-drop crest on the bridge railings.' },
+  { id: 'tplanters', name: 'Cedar planters', space: 'terrace', bridge: 4, cost: 8000, job: 'place', ch: 3, ap: 2, fx: 'Long cedar planter boxes on the parapets: ivy, ferns, small flowers.' },
+  { id: 'tunder', name: 'Underside lights', space: 'terrace', bridge: 7, cost: 7000, job: 'wire', ch: 3, ap: 2, fx: 'Warm downlights the length of the bridge and a cyan strip along its edge.' },
+  { id: 'tneon', name: 'Neon teacup', space: 'terrace', bridge: 8, cost: 9000, job: 'wire', ch: 3, ap: 3, fx: 'A pink neon teacup, steaming, on the bridge\'s old ad panel.' },
+  { id: 'tcanopy', name: 'Rain canopy', space: 'terrace', bridge: 9, cost: 16000, job: 'bolt', ch: 3, ap: 2, fx: 'A black steel pergola with clear roof panels, and two more tables under it. Terrace guests stay patient in a downpour.' },
+  { id: 'tbamboo', name: 'Bamboo end', space: 'terrace', bridge: 10, cost: 12000, job: 'place', ch: 4, ap: 2, fx: 'A cedar planter wall with tall bamboo and a stone lantern where the old gate was chained.' },
+  { id: 'twisteria', name: 'Wisteria', space: 'terrace', bridge: 11, cost: 20000, job: 'hang', ch: 4, ap: 5, fx: 'Purple wisteria trailing over the planters and down the sides of the bridge.' },
   { id: 'yatainoren', name: 'Yatai noren and lantern', space: 'alley', cost: 6000, job: 'hang', ch: 3, ap: 2, fx: 'Dress the cart.' },
   { id: 'cartburner', name: 'Cart burner', space: 'alley', cost: 16000, job: 'wire', ch: 3, ap: 0, fx: 'A staff station on the yatai: brews kettle teas and shakes iced drinks.' },
   { id: 'tearack', name: 'Bigger tea counter', space: 'ground', cost: 9000, job: 'bolt', ch: 3, ap: 0, fx: 'Each tea counter section holds 14 cups instead of 8.' },
