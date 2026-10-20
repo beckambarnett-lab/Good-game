@@ -4,3 +4,4 @@ node_modules/
 gauntlet/captures/**/*.png
 .claude/
 gauntlet/captures/**/*.log
+gauntlet/captures/**/manifest.json
