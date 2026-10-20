@@ -1,0 +1,9 @@
+{
+  "name": "shizuku-gauntlet-harness",
+  "private": true,
+  "type": "module",
+  "devDependencies": {
+    "playwright-core": "1.56.1",
+    "three": "0.160.0"
+  }
+}

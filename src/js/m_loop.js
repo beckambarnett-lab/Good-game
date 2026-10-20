@@ -48,6 +48,7 @@ const CAMS = { pos: new THREE.Vector3(), q: new THREE.Quaternion(), focusT: 0, f
 const _ce = new THREE.Euler(0, 0, 0, 'YXZ'), _cq = new THREE.Quaternion(), _cv = new THREE.Vector3();
 let dialogLook = null; // point to ease view toward during dialogue
 function updateCamera(dt) {
+  if (DEBUG && window.__szPhoto) { photoCam(); return; } // gauntlet harness: fixed reference camera (l_cheat.js)
   // look input
   if (!player.focus && !UI.modal && started && !paused) {
     const sens = SET.sens; player.yaw -= look.dx * 0.0022 * sens; player.pitch -= look.dy * 0.0022 * sens * (SET.invert ? -1 : 1);

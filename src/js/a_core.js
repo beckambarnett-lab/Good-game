@@ -44,7 +44,7 @@ const RECIPES = [
 ];
 const RID = Object.fromEntries(RECIPES.map((r, i) => [r.id, i]));
 const MASTER_N = 8;
-// upgrades: space, cost, install job, chapter, appeal, effect
+// upgrades: space, cost, install job, chapter, appeal, effect; bridge: n marks the n-th 雫テラス bridge upgrade (the gauntlet harness builds its stages from these)
 const UPG = [
   { id: 'barrel2', name: 'Barrel extension', space: 'alley', cost: 2500, job: 'align', ch: 1, ap: 0, fx: 'A stacked tank on the rain barrel. +40 L storage.' },
   { id: 'gutter', name: 'New gutter and downpipe', space: 'facade', cost: 4000, job: 'hang', ch: 1, ap: 1, fx: 'Replace the rusted downpipe. +50% rain catchment.' },
@@ -68,8 +68,8 @@ const UPG = [
   { id: 'galley', name: 'Upstairs galley kitchen', space: 'f2', cost: 18000, job: 'bolt', ch: 2, ap: 1, fx: 'Two staff stations on the second floor. Staff there can whisk matcha too.' },
   { id: 'dumbwaiter', name: 'Dumbwaiter', space: 'ground', cost: 12000, job: 'wire', ch: 2, ap: 0, fx: 'A lift for trays between floors: staff get around 30% faster.' },
   { id: 'tetsubin', name: 'Cast-iron tetsubin', space: 'ground', cost: 24000, job: 'place', ch: 2, ap: 0, fx: 'Brews 6 cups per pot.' },
-  { id: 'heaters', name: 'Terrace heaters', space: 'terrace', cost: 10000, job: 'wire', ch: 3, ap: 1, fx: 'Terrace guests wait 30 s longer.' },
-  { id: 'strings', name: 'Bridge string lights', space: 'terrace', cost: 9000, job: 'hang', ch: 3, ap: 4, fx: 'Lights strung over the street.' },
+  { id: 'heaters', name: 'Terrace heaters', space: 'terrace', bridge: 1, cost: 10000, job: 'wire', ch: 3, ap: 1, fx: 'Terrace guests wait 30 s longer.' },
+  { id: 'strings', name: 'Bridge string lights', space: 'terrace', bridge: 2, cost: 9000, job: 'hang', ch: 3, ap: 4, fx: 'Lights strung over the street.' },
   { id: 'yatainoren', name: 'Yatai noren and lantern', space: 'alley', cost: 6000, job: 'hang', ch: 3, ap: 2, fx: 'Dress the cart.' },
   { id: 'cartburner', name: 'Cart burner', space: 'alley', cost: 16000, job: 'wire', ch: 3, ap: 0, fx: 'A staff station on the yatai: brews kettle teas and shakes iced drinks.' },
   { id: 'tearack', name: 'Bigger tea counter', space: 'ground', cost: 9000, job: 'bolt', ch: 3, ap: 0, fx: 'Each tea counter section holds 14 cups instead of 8.' },
