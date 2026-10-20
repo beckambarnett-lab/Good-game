@@ -3,3 +3,4 @@ node_modules/
 # captures are large PNGs: keep critiques and digests in git, not the images
 gauntlet/captures/**/*.png
 .claude/
+gauntlet/captures/**/*.log
