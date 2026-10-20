@@ -88,4 +88,5 @@ node shoot.mjs walk --stage 1 --device phone --out dir                          
   2. Build the stage 1 unlock look (repaint, cedar deck, 雫テラス sign, downlights) and remove the old heaters and strings from `buildTerrace`.
   3. Build the on-camera reveal.
   4. Recapture as round 2 and run fresh critics.
-- **Published:** the current build (`dist/index.html`) went to the original Shizuku artifact.
+- **Published:** the current build went to a new artifact, https://claude.ai/artifact/4CJpBn4p3WgqP9W42rWt5s. The original Shizuku artifact is untouched.
+- **User directive:** builders work on the bridge only and never touch the tea house exterior. The tea house exterior builder is dropped. The user approved pushing `gauntlet-bridge`.

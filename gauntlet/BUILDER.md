@@ -35,6 +35,7 @@ You're a builder on **Shizuku**, a first-person Three.js (r160) tea-shop game se
 - Procedural canvas textures are fine; there are no image assets. Fonts come from Google Fonts, as the page already loads them.
 
 ## Rules
+- **Bridge only (user directive): never touch the tea house exterior.** Don't edit `x_exterior.js`, the tea house shell in `e_building.js` (`buildShell`), or anything on the tea house's own facade or balcony. Only the footbridge and its terrace, stairs, underside and fascia are in scope.
 - **Match the references one to one:** shape, proportions, layout, props, materials, lighting, color, wet reflections, rain, mood. Ignore people in the references. The intended Japanese text is 茶房雫, 雫テラス, テラス席, 立入禁止, 関係者以外立入禁止, テナント募集, ほしマート, 開運 KAIUN.
 - **Stage discipline:**
   - Stage 0 (`S.ch < 3`) matches BEFORE. The final stage matches AFTER.
