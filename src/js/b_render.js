@@ -17,7 +17,7 @@ renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.setClearColor(0x05070f, 1);
 const scene = new THREE.Scene();
-scene.fog = new THREE.FogExp2(0x2c2a36, 0.016); // dark blue-grey street haze; the skyline uses its own thinner purple haze (SKY_HAZE)
+scene.fog = new THREE.FogExp2(0x303c46, 0.016); // rain mist: neutral blue-grey, so the far street and towers fade out instead of going purple; the skyline uses its own thinner haze (SKY_HAZE)
 const camera = new THREE.PerspectiveCamera(70, innerWidth / innerHeight, 0.05, 420);
 camera.rotation.order = 'YXZ'; scene.add(camera);
 // hands / viewmodel scene
@@ -57,14 +57,14 @@ const gradePass = new ShaderPass({
       uv+= (f-o)*m*0.06; }
     float k=dot(cc,cc)*uFringe*0.006;
     vec3 col; col.r=texture2D(tDiffuse,uv+cc*k).r; col.g=texture2D(tDiffuse,uv).g; col.b=texture2D(tDiffuse,uv-cc*k).b;
-    // grade outdoors: cool blue-grey shadows crushed toward black, warm saturated pools around the lights
+    // grade outdoors: teal-black shadows crushed toward black, amber highlights; a desaturated grey-teal night where only the light pools keep their colour
     float l=dot(col,vec3(0.2126,0.7152,0.0722));
     // indoors (uIn): teal-brown shadows, amber highlights, a touch more contrast in the darks
-    vec3 sh=mix(vec3(0.9,0.97,1.1),vec3(0.9,0.98,1.0),uIn), hi=mix(vec3(1.0),mix(vec3(1.12,1.0,0.82),vec3(1.1,0.99,0.84),uIn),uWarm);
+    vec3 sh=mix(vec3(0.86,1.0,1.03),vec3(0.9,0.98,1.0),uIn), hi=mix(vec3(1.0),mix(vec3(1.13,1.0,0.8),vec3(1.1,0.99,0.84),uIn),uWarm);
     col*=mix(sh,hi,smoothstep(0.02,0.6,l));
-    col*=mix(mix(0.62,1.0,smoothstep(0.0,0.04,l)),mix(0.8,1.0,smoothstep(0.0,0.08,l)),uIn);
-    { float lo=dot(col,vec3(0.2126,0.7152,0.0722)); col=max(mix(vec3(lo),col,1.0+0.3*smoothstep(0.04,0.5,lo)*(1.0-uIn)),0.0); }
-    col+=mix(vec3(0.0004,0.0006,0.0012),vec3(0.006,0.0045,0.004),uIn);
+    col*=mix(mix(0.45,1.0,smoothstep(0.0,0.06,l)),mix(0.8,1.0,smoothstep(0.0,0.08,l)),uIn);
+    { float lo=dot(col,vec3(0.2126,0.7152,0.0722)); col=max(mix(vec3(lo),col,mix(mix(0.55,1.08,smoothstep(0.05,0.7,lo)),1.0,uIn)),0.0); }
+    col+=mix(vec3(0.0002,0.0005,0.0006),vec3(0.006,0.0045,0.004),uIn);
     col+=uFlash*vec3(0.55,0.62,0.85);
     float v=1.0-dot(cc*vec2(1.1,1.25),cc*vec2(1.1,1.25))*uVig*(2.2+uIn*0.9); col*=clamp(v,0.0,1.0);
     col+=(h(uv*uRes+fract(uTime*7.3))-0.5)*uGrain*(0.4+l);
@@ -98,8 +98,9 @@ function resize() {
 function baseFov() { const a = vw / vh; const b = a < 0.8 ? 86 : a < 1.3 ? 78 : 70; return clamp(b + SET.fov, 55, 100); }
 
 /* ================= lights ================= */
-const hemi = new THREE.HemisphereLight(0x5466a8, 0x1a1420, 0.55); scene.add(hemi);
-const moon = new THREE.DirectionalLight(0x8fa6e8, 0.25); moon.position.set(-12, 30, 18); scene.add(moon);
+// night sky fill: kept low and neutral cool grey (a touch of teal), so facades sit in near-black shadow and the warm local lights carry the exposure
+const hemi = new THREE.HemisphereLight(0x667a80, 0x0c1012, 0.2); scene.add(hemi);
+const moon = new THREE.DirectionalLight(0xa8b8c0, 0.09); moon.position.set(-12, 30, 18); scene.add(moon);
 // one shadow-casting key light, follows the room you are in
 const keyLight = new THREE.SpotLight(0xffb36a, 0, 0, 0.95, 0.65, 2); keyLight.position.set(0, 3.2, -2.5); keyLight.target.position.set(0, 0, -2.6);
 keyLight.castShadow = Q.shadow > 0; keyLight.shadow.mapSize.set(Q.shadow || 512, Q.shadow || 512); keyLight.shadow.bias = -0.0005; keyLight.shadow.normalBias = 0.02; keyLight.shadow.radius = 2; keyLight.shadow.camera.near = 0.2; keyLight.shadow.camera.far = 9;
@@ -117,14 +118,14 @@ const ANCHORS = [];
 function anchor(x, y, z, hex, i, r, zones, wrap) { const a = { p: [x, y, z], c: new THREE.Color(hex), i, r, z: Array.isArray(zones) ? zones : [zones], wrap: wrap == null ? 0.25 : wrap }; ANCHORS.push(a); return a; }
 const lin = (r, g, b) => new THREE.Color().setRGB(r, g, b);
 const ZONES = {
-  street: { amb: lin(0.068, 0.074, 0.13), floors: [0] },
-  facade: { amb: lin(0.072, 0.078, 0.14), floors: [0, 3.6, 6.8, 10] },
+  street: { amb: lin(0.024, 0.03, 0.034), floors: [0] },
+  facade: { amb: lin(0.026, 0.032, 0.036), floors: [0, 3.6, 6.8, 10] },
   g0: { amb: lin(0.04, 0.026, 0.019), floors: [0] },
   f2: { amb: lin(0.07, 0.052, 0.045), floors: [3.6] },
   f3: { amb: lin(0.075, 0.055, 0.085), floors: [6.8] },
-  roof: { amb: lin(0.055, 0.06, 0.12), floors: [10] },
-  alley: { amb: lin(0.055, 0.061, 0.112), floors: [0] },
-  far: { amb: lin(0.062, 0.068, 0.122), floors: [0] },
+  roof: { amb: lin(0.022, 0.027, 0.031), floors: [10] },
+  alley: { amb: lin(0.021, 0.026, 0.03), floors: [0] },
+  far: { amb: lin(0.023, 0.028, 0.032), floors: [0] },
 };
 function floorY(zone, y) { const fl = (ZONES[zone] || ZONES.street).floors; let f = fl[0]; for (const v of fl) if (v <= y + 0.02) f = v; return f; }
 const _bc = new THREE.Color();
@@ -139,7 +140,7 @@ function bakeArrays(zone, pos, nor, out, aoOn) {
     const o = v * 3, px = pos[o], py = pos[o + 1], pz = pos[o + 2], nx = nor[o], ny = nor[o + 1], nz = nor[o + 2];
     let r = amb.r, g = amb.g, b = amb.b;
     // sky term: upward faces outdoors get a little more
-    if (zone === 'street' || zone === 'facade' || zone === 'roof' || zone === 'alley' || zone === 'far') { const s = 0.5 + 0.5 * ny; r += 0.045 * s; g += 0.048 * s; b += 0.088 * s; }
+    if (zone === 'street' || zone === 'facade' || zone === 'roof' || zone === 'alley' || zone === 'far') { const s = 0.5 + 0.5 * ny; r += 0.016 * s; g += 0.02 * s; b += 0.023 * s; }
     for (let k = 0; k < use.length; k++) {
       const a = use[k]; const dx = a.p[0] - px, dy = a.p[1] - py, dz = a.p[2] - pz; const d2 = dx * dx + dy * dy + dz * dz; if (d2 > a.r * a.r) continue;
       const d = Math.sqrt(d2) + 1e-4; let ndl = (dx * nx + dy * ny + dz * nz) / d; ndl = a.wrap ? (ndl * (1 - a.wrap) + a.wrap) : ndl; if (ndl <= 0) continue;
@@ -368,8 +369,8 @@ function printedMesh(tex, wM, hM, lit, o) { const m = lit ? new THREE.MeshLamber
 
 /* ================= sky ================= */
 const skyGeo = new THREE.SphereGeometry(300, 32, 16);
-{ const pa = skyGeo.attributes.position, col = new Float32Array(pa.count * 3); const top = new THREE.Color(0x262238), mid = new THREE.Color(0x2c263d), hor = new THREE.Color(0x3c304a), c = new THREE.Color();
-  // dark desaturated indigo overhead (#14122a on screen after grade + tone map), a slightly lighter purple city glow toward the horizon
+{ const pa = skyGeo.attributes.position, col = new Float32Array(pa.count * 3); const top = new THREE.Color(0x0e1016), mid = new THREE.Color(0x15161e), hor = new THREE.Color(0x2a2238), c = new THREE.Color();
+  // near-black blue-grey overhead, a low dark-violet city glow toward the horizon behind the towers
   for (let i = 0; i < pa.count; i++) { const y = pa.getY(i) / 300; if (y > 0.3) c.copy(mid).lerp(top, smoothstep(0.3, 0.95, y)); else if (y > -0.02) c.copy(hor).lerp(mid, smoothstep(-0.02, 0.3, y)); else c.copy(hor).lerp(new THREE.Color(0x0c0c14), smoothstep(-0.02, -0.12, y)); col.set([c.r, c.g, c.b], i * 3); }
   skyGeo.setAttribute('color', new THREE.BufferAttribute(col, 3)); }
 const sky = new THREE.Mesh(skyGeo, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide, fog: false, depthWrite: false }));
@@ -380,7 +381,7 @@ const cloudTex = canvasTex(512, 512, (x, w, h) => {
   for (let i = 0; i < 260; i++) { const cx = Math.random() * w, cy = Math.random() * h, r = rand(30, 110); const g = x.createRadialGradient(cx, cy, 0, cx, cy, r); const a = rand(0.04, 0.12); g.addColorStop(0, `rgba(255,255,255,${a})`); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; for (const ox of [-w, 0, w]) for (const oy of [-h, 0, h]) { x.save(); x.translate(ox, oy); x.fillRect(cx - r, cy - r, r * 2, r * 2); x.restore(); } }
 }, { repeat: true });
 cloudTex.repeat.set(3, 3);
-const clouds = new THREE.Mesh(new THREE.PlaneGeometry(640, 640), new THREE.MeshBasicMaterial({ map: cloudTex, transparent: true, depthWrite: false, color: new THREE.Color(0.1, 0.07, 0.16), blending: THREE.AdditiveBlending, fog: false }));
+const clouds = new THREE.Mesh(new THREE.PlaneGeometry(640, 640), new THREE.MeshBasicMaterial({ map: cloudTex, transparent: true, depthWrite: false, color: new THREE.Color(0.045, 0.04, 0.065), blending: THREE.AdditiveBlending, fog: false }));
 // high above the tallest towers, so it never slices through them; only a faint city-lit texture in the sky
 clouds.rotation.x = Math.PI / 2; clouds.position.y = 265; clouds.renderOrder = -9; scene.add(clouds);
 

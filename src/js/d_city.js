@@ -78,8 +78,8 @@ const WIN_TEX = canvasTex(1024, 1024, (x, w, h) => {
   x.globalAlpha = 1; x.fillStyle = '#090c16'; x.fillRect(0, h - 8, w, 8); // bottom row stays dark: roofs sample it
 }, { repeat: true });
 WIN_TEX.anisotropy = 1; // distant, mostly face-on: anisotropic taps on a sky-filling atlas cost more than they show
-// distant haze: the skyline gets its own, thinner fog toward a purple-indigo city glow, plus a low glow band around the tower bases
-const SKY_HAZE = { col: { value: new THREE.Color(0x352d42) }, k: { value: 0.6 } };
+// distant haze: the skyline gets its own, thinner fog toward a blue-grey rain mist, plus a low glow band around the tower bases
+const SKY_HAZE = { col: { value: new THREE.Color(0x2c333c) }, k: { value: 0.6 } };
 function hazeMat(o) {
   const m = new THREE.MeshBasicMaterial(Object.assign({ vertexColors: true, fog: true }, o));
   m.onBeforeCompile = sh => {
