@@ -31,6 +31,7 @@ async function stagesWanted(browser) {
 function stageById(all, id) { return id === 'final' ? all[all.length - 1] : id === 'pre3' ? all.pre3 : all.find(s => s.id === +id); }
 
 async function openStage(browser, stage, opts = {}) {
+  if (args.w && !opts.device) Object.assign(opts, { w: +args.w, h: +(args.h || Math.round(+args.w * REF_H / REF_W)) }); // --w 836: half-size for sequences
   const page = await newPage(browser, opts);
   await loadGame(page, { save: stage.save, tier: args.tier || opts.tier || 'high' });
   await setWeather(page);
@@ -51,9 +52,9 @@ async function sheet(browser, panes, out, title = '') {
 async function captureAngles(browser, stage, angles, dir) {
   mkdirSync(dir, { recursive: true });
   const page = await openStage(browser, stage);
-  await frames(page, 30); // weather ramps, reflections settle
+  await frames(page, 14); // weather is set directly; reflections and bloom settle
   for (const a of angles) {
-    await photo(page, ANGLES[a].cam); await frames(page, 6);
+    await photo(page, ANGLES[a].cam); await frames(page, 5);
     await shot(page, path.join(dir, a + '.png'));
   }
   const errs = page.errors.slice(); await page.context().close();
@@ -66,11 +67,13 @@ if (cmd === 'refs') {
   const angles = args.angles ? String(args.angles).split(',') : Object.keys(ANGLES);
   const base = path.join(ROOT, 'gauntlet/captures', 'round_' + (args.round ?? 'x'));
   const manifest = { stages: all.map(s => ({ id: s.id, label: s.label })), final: all[all.length - 1].id, angles: Object.fromEntries(angles.map(a => [a, ANGLES[a]])), errors: {} };
-  for (const st of stages) {
+  // --jobs N stages render concurrently (SwiftShader is CPU-bound: 2 suits a 4-core box)
+  const queue = stages.slice(), jobs = +(args.jobs || 2);
+  await Promise.all(Array.from({ length: jobs }, async () => { for (let st; (st = queue.shift());) {
     const errs = await captureAngles(browser, st, angles, path.join(base, 'stage_' + st.id));
     if (errs.length) manifest.errors[st.id] = errs;
     console.log('stage', st.id, st.label, errs.length ? 'ERRORS: ' + errs.join(' | ') : 'ok');
-  }
+  } }));
   // compare sheets: reference vs capture for stage 0 (before) and the final stage (after)
   const cmpDir = path.join(base, 'compare'); mkdirSync(cmpDir, { recursive: true });
   for (const a of angles) for (const [which, sid] of [['before', 0], ['after', manifest.final]]) {

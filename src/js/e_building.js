@@ -157,6 +157,9 @@ function buildShell() {
 
 /* ---------- footbridge over the street (pedestrian bridge) ---------- */
 function buildBridge() {
+  // rebuild-safe: upgrades call this again (rebuildBridge in k_terrace.js), so drop last build's anchors, signs and collision first
+  clearAnchors('bridge'); for (const t of ['bridge', 'bridgeStair', 'bridgeR', 'bridgeEnd']) clearTag(t); for (let i = CITY.signs.length - 1; i >= 0; i--) if (CITY.signs[i].part === 'bridge') CITY.signs.splice(i, 1);
+  const a0 = ANCHORS.length, s0n = CITY.signs.length;
   reseed(515); const g = part('bridge'); const ch = new Chunk('bridge', 'street'), em = new Chunk('bridgeEm', 'street', { emis: true });
   const x0 = -6.4, x1 = -4.0, y = 3.6, za = 1.0, zb = 13.9, cx = (x0 + x1) / 2;
   ch.box(x1 - x0, 0.12, zb - za, 0x4a4e56, cx, y - 0.06, (za + zb) / 2); ch.box(x1 - x0 + 0.1, 0.5, zb - za, 0x5a5e66, cx, y - 0.37, (za + zb) / 2);
@@ -175,11 +178,11 @@ function buildBridge() {
   ch.box(0.04, 0.9, nw, 0x3a3d42, x0 + 0.04, y + 0.5, nz); for (let k = 0; k < 7; k++) ch.box(0.03, 0.86, 0.02, 0x6a6e74, x0 + 0.06, y + 0.5, g0 + 0.12 + k * (nw - 0.14) / 6);
   for (let k = 0; k < 6; k++) ch.box(0.05, 0.12, nw / 6, k % 2 ? 0x16171a : 0xe8c21e, x0 + 0.1, y + 0.72, g0 + 0.05 + (k + 0.5) * nw / 6);
   ch.cable([x0 + 0.13, y + 0.45, g0 + 0.08], [x0 + 0.13, y + 0.45, g1 - 0.08], 0.12, 0.014, 0x8a8e94, 10); ch.box(0.05, 0.08, 0.06, 0xc8a040, x0 + 0.14, y + 0.33, nz);
-  ch.box(0.02, 0.3, 0.62, 0xefe9da, x0 + 0.13, y + 0.98, nz); neon('立入禁止', x0 + 0.15, y + 0.98, nz, Math.PI / 2, 0.14, 'red', { px: 48, lit: 0.15, k: 1.3 });
+  ch.box(0.02, 0.3, 0.62, 0xefe9da, x0 + 0.13, y + 0.98, nz); neon('立入禁止', x0 + 0.15, y + 0.98, nz, Math.PI / 2, 0.14, 'red', { px: 48, lit: 0.15, k: 1.3, group: g });
   // bottom: a Kaiun hoarding panel across the foot of the stairs
   ch.box(0.08, 2.1, g1 - g0 + 0.1, 0xe8e6e0, nb - 0.35, 1.17, nz); ch.box(0.09, 0.25, g1 - g0 + 0.1, 0x2a2c31, nb - 0.35, 0.24, nz);
   for (let k = 0; k < 6; k++) ch.box(0.1, 0.1, (g1 - g0) / 6, k % 2 ? 0x16171a : 0xe8c21e, nb - 0.4, 1.0, g0 + (k + 0.5) * (g1 - g0) / 6);
-  neon('立入禁止', nb - 0.41, 1.6, nz, -Math.PI / 2, 0.2, 'red', { px: 48, lit: 0.2, k: 1.4 }); neon('開運', nb - 0.41, 1.9, nz, -Math.PI / 2, 0.16, 'mag', { px: 48, lit: 0.15, k: 1.8 });
+  neon('立入禁止', nb - 0.41, 1.6, nz, -Math.PI / 2, 0.2, 'red', { px: 48, lit: 0.2, k: 1.4, group: g }); neon('開運', nb - 0.41, 1.9, nz, -Math.PI / 2, 0.16, 'mag', { px: 48, lit: 0.15, k: 1.8, group: g });
   for (const z of [2.0, 12.0]) { ch.box(0.5, y - 0.6, 0.5, 0x6a6e76, x0 + 0.4, (y - 0.6) / 2, z); ch.box(0.5, y - 0.6, 0.5, 0x6a6e76, x1 - 0.4, (y - 0.6) / 2, z); }
   // far stairs down toward +x
   const s0 = 12.65, s1 = 13.9; stairX(ch, 1.0, x1, 0.12, y, s0, s1, 0x5a5e66);
@@ -187,7 +190,7 @@ function buildBridge() {
   // under-deck light strip + sign
   em.box(x1 - x0 - 0.2, 0.04, 0.05, 0xe8f6ff, cx, y - 0.62, 6); em.box(x1 - x0 - 0.2, 0.04, 0.05, 0xe8f6ff, cx, y - 0.62, 9);
   anchor(cx, y - 0.8, 7.5, 0xbfe6ff, 1.8, 6, ['street'], 0.2);
-  neon('歩道橋', cx, y + 1.45, 7.3, -Math.PI / 2, 0.42, 'white', { px: 64, lit: 0.3, k: 1.4, ds: true });
+  neon('歩道橋', cx, y + 1.45, 7.3, -Math.PI / 2, 0.42, 'white', { px: 64, lit: 0.3, k: 1.4, ds: true, group: g });
   // panels with graffiti / ads on the bridge sides
   for (const z of [4, 10]) ch.box(0.02, 0.8, 2.2, spick([0x3a5a8a, 0x8a3a5a, 0x5a8a3a]), x0 - 0.02, y + 0.45, z);
   addBuilt(g, ch); addBuilt(g, em);
@@ -196,6 +199,7 @@ function buildBridge() {
   solid(1.0, x1, 0, 1.0, s0 - 0.06, s0, 'bridgeR');
   solid(nb - 0.45, -8.6, 0, 1.95, g0, g1, 'bridgeR'); // under the low end of the near stairs + the hoarding
   REF.bridgeView = new THREE.Vector3(cx, y, 5.5);
+  for (let i = a0; i < ANCHORS.length; i++) ANCHORS[i].tag = 'bridge'; for (let i = s0n; i < CITY.signs.length; i++) CITY.signs[i].part = 'bridge';
 }
 
 /* ---------- facade dressing (depends on state + upgrades) ---------- */
