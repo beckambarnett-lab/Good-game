@@ -68,7 +68,7 @@ if (cmd === 'refs') {
   const base = path.join(ROOT, 'gauntlet/captures', 'round_' + (args.round ?? 'x'));
   const manifest = { stages: all.map(s => ({ id: s.id, label: s.label })), final: all[all.length - 1].id, angles: Object.fromEntries(angles.map(a => [a, ANGLES[a]])), errors: {} };
   // --jobs N stages render concurrently (SwiftShader is CPU-bound: 2 suits a 4-core box)
-  const queue = stages.slice(), jobs = +(args.jobs || 2);
+  const queue = stages.filter(st => !args.missing || angles.some(a => !existsSync(path.join(base, 'stage_' + st.id, a + '.png')))), jobs = +(args.jobs || 2);
   await Promise.all(Array.from({ length: jobs }, async () => { for (let st; (st = queue.shift());) {
     const errs = await captureAngles(browser, st, angles, path.join(base, 'stage_' + st.id));
     if (errs.length) manifest.errors[st.id] = errs;

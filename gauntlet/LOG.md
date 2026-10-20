@@ -34,3 +34,9 @@ node shoot.mjs walk --stage 1 --device phone --out dir                          
 - Materials are flat and untextured: no rust, graffiti or paint wear on the bridge.
 - The konbini is "AMA MART" with rainbow stripes, where it should be ほしマート with teal, white and orange stripes and a star.
 - The lighting is cold and blue overall, and the city lacks the warm pools of light the references have.
+- **Plumbing before round 1** (commit 5eecf4a):
+  - The nine new bridge upgrades exist as data, with empty visuals. `k_terrace.js` holds one `TERRACE_FX` function per upgrade, so builders never edit the same function.
+  - `buildBridge()` is now rebuild-safe.
+  - `check.mjs` covers the gameplay regressions: stages load, upgrades apply in order, idempotent rebuilds, a walkable deck and stairs, the shop end closed or open, terrace seats, old saves.
+- **Captures aren't committed** (`.gitignore`). At ~2.5 MB each, 65 per round would bloat the repo. The critique JSON and `DIGEST.md` are committed.
+- **Street camera recalibrated** after the round 0 baseline drifted: `pos [2.6, 0.9, 13.1]`, `at [-6, 3.4, 4.5]`, fov 74, at the far-stair foot looking up the run.

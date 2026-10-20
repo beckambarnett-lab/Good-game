@@ -75,4 +75,8 @@ export async function frames(page, n = 8) {
   await page.evaluate(n => new Promise(res => { let k = 0; const f = () => (++k >= n ? res() : requestAnimationFrame(f)); requestAnimationFrame(f); }), n);
 }
 
-export async function shot(page, file) { await page.screenshot({ path: file }); }
+// SwiftShader frames can take seconds under load: long timeout, one retry
+export async function shot(page, file) {
+  try { await page.screenshot({ path: file, timeout: 180000 }); }
+  catch (e) { await frames(page, 2); await page.screenshot({ path: file, timeout: 300000 }); }
+}
