@@ -41,3 +41,38 @@ node shoot.mjs walk --stage 1 --device phone --out dir                          
 - **Captures aren't committed** (`.gitignore`). At ~2.5 MB each, 65 per round would bloat the repo. The critique JSON and `DIGEST.md` are committed.
 - **Street camera recalibrated** after the round 0 baseline drifted: `pos [2.6, 0.9, 13.1]`, `at [-6, 3.4, 4.5]`, fov 74, at the far-stair foot looking up the run.
 - **User clarification** (during round 1): the 2 BEFORE references show the move-in (prologue) state, which is stage 0. The 5 AFTER references are fully upgraded Chapter 5 shots, which is the final stage (stage 12: chapter 5, every upgrade). That's how the harness is wired already: AFTER critics only ever see the final stage. Calibration shots for the AFTER-only angles were taken at stage 0 purely to line up the camera, never to judge content.
+
+## Round 1 (critique of the baseline; first builders)
+**Captures:** `captures/round_1/`, all 13 stages × 5 angles, plus `reveal_unlock`, `walk0_desktop`, `walk1_desktop` and `walk1_phone`.
+**Critics:** 30 fresh agents, per CRITICS.md. Full gaps are in `captures/round_1/DIGEST.md`.
+
+**Scores (mean):**
+- **BEFORE:** high 2.33, street 2.75.
+- **AFTER (final stage):** terrace 1.50, high 1.78, balcony 2.50, street 2.67, konbini 3.00.
+- **Reveal:** 1.0. **Playability:** 2.75. **Mobile:** 4.33. **Beauty:** stages 0/1 5.65, stages 6/12 5.25.
+- **Progression (0→100):** stage 1 lands at 22–34, stages 2–10 are flat (only the heaters at 6 and the strings at 7 move), the final reaches 39–50. All four critics: "fails as a progression".
+
+**Top gaps** (raised by several critics):
+1. **The upgrade visuals don't exist yet** (the `TERRACE_FX` slots are empty): frozen stages, a terrace that reads as a blockout, and no lanterns, planters, canopy, heaters, underglow, neon, wisteria or bamboo.
+2. **The Chapter 3 unlock changes only the tea house**, not the bridge (no repaint, sign, cedar deck or warm light). The reveal happens off-camera, behind a fade.
+3. **Stage 0 materials:** flat, untextured steel; solid-block stairs; the barrier props are missing. (Builder running.)
+4. **Road:** wavy, speckled, psychedelic reflections. Fixed in 42dc12d.
+5. **Lighting:** a cold purple ambient with no warm pools; the rain reads as a white overlay. Fixed in c-pick of e8b188b.
+6. **Konbini and neighbours:** "AMA MART", a flat skyline, a short vista. (Builder running.)
+7. **Continuity:**
+   - the crosswalk (a tea house upgrade) is a scatter of floating tiles;
+   - stray floating boxes and dark puddle-decal blobs;
+   - the furniture layout disagrees between angles.
+8. **Harness:**
+   - the stage 0 walk sat behind the move-in intro modal;
+   - the terrace walk seated no customers.
+9. **Mobile:** HUD buttons below the minimum size; a chapter banner covers the view.
+
+**Merged this round:**
+- **Wet road** (builder, 42dc12d): removed the ripple, column grain and glints; a vertical streak blur at reflection-texture resolution.
+- **Lighting** (builder, cherry-picked from e8b188b): ambient cut about 60% and moved to grey-blue, a teal/amber grade, blue-grey fog, finer additive rain.
+
+**Process notes:**
+- **API session limit:** all four builders stopped mid-task and were resumed after the limit reset.
+- **Wrong worktree base:** builder worktrees are created on the repo's default checkout (an unrelated project). Builders reset onto `gauntlet-bridge`, and BUILDER.md now says to check this.
+- **CPU:** 4 cores were saturated (load 23). Builders now iterate at half size, one capture at a time.
