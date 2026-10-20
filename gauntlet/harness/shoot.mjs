@@ -135,7 +135,11 @@ if (cmd === 'refs') {
   await frames(page, 20);
   await sz(page, 'DLG.active = false; S.flags.noSpawn = 1; player.pos.set(2.4, 0.12, 13.2); player.yaw = Math.PI / 2; player.pitch = 0.05; 0');
   // a living terrace: seat a customer on every terrace stool (stage 1+)
-  await sz(page, "for (const s of SEATS) if (s.sp === 'terrace' && !s.occ) spawnCustomer({ seat: s.id }); 0").catch(() => { });
+  const clearUI = () => sz(page, "for (let i = 0; i < 6 && DLG.active; i++) dlgAdvance(); if (!$('#letter').hidden) $('#letterClose').click(); if (UI.modal) closePanel(); if (PHONE.open) togglePhone(false); player.lock = 0; player.busy = null; 0").catch(() => { });
+  await clearUI();
+  // a living terrace: seat a customer on every terrace stool (stage 1+), fast-forwarding until they've walked up and sat down
+  const nT = await sz(page, "(() => { let n = 0; for (const s of SEATS) if (s.sp === 'terrace' && !s.occ && spawnCustomer({ seat: s.id })) n++; return n; })()").catch(() => 0);
+  if (nT) { await sz(page, 'CHEAT.speed = 4; 0'); for (let i = 0; i < 40; i++) { await frames(page, 10); await clearUI(); if (await sz(page, "CUST.filter(c => c.seat.sp === 'terrace' && c.state !== 'arrive').length") >= nT) break; } await sz(page, 'CHEAT.speed = 1; 0'); await sz(page, 'player.pos.set(2.4, 0.12, 13.2); 0'); }
   const out = path.resolve(args.out || 'walk'); mkdirSync(out, { recursive: true });
   // steer toward each waypoint: up the far stairs, onto the deck, along it to the shop end, then turn back to look over the tables
   const route = [[-1.6, 13.27], [-4.6, 13.2], [-5.2, 12.4], [-5.2, 8.0], [-5.2, 4.0], [-5.0, 1.5]];
@@ -145,7 +149,7 @@ if (cmd === 'refs') {
     for (let i = 0; i < 12; i++) {
       const d = await sz(page, `(() => { const dx = ${tx} - player.pos.x, dz = ${tz} - player.pos.z; player.yaw = Math.atan2(-dx, -dz); return Math.hypot(dx, dz); })()`);
       if (d < 0.35) break;
-      await hold(true); await frames(page, 6); await hold(false);
+      await clearUI(); await hold(true); await frames(page, 6); await hold(false);
       if (i % 2 === 0) await shot(page, path.join(out, String(k++).padStart(3, '0') + '.png'));
     }
   }
