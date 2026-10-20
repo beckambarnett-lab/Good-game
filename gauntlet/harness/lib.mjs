@@ -39,6 +39,7 @@ export async function newPage(browser, { device = 'desktop', w = REF_W, h = REF_
   const ctx = device === 'phone'
     ? await browser.newContext({ viewport: { width: 844, height: 390 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true })
     : await browser.newContext({ viewport: { width: w, height: h }, deviceScaleFactor: 1 });
+  ctx.setDefaultTimeout(300000); ctx.setDefaultNavigationTimeout(300000); // SwiftShader on a busy shared box
   const page = await ctx.newPage();
   page.errors = [];
   page.on('pageerror', e => page.errors.push(e.message));
@@ -53,7 +54,7 @@ export async function loadGame(page, { save = null, tier = 'high' } = {}) {
     window.__szDebug = true; window.__noSave = true; window.__noAdapt = true; window.__szTier = t;
     try { localStorage.clear(); if (sv) localStorage.setItem('shizuku-save-v1', JSON.stringify(sv)); } catch (e) { }
   }, [save, tier]);
-  await page.goto(ORIGIN);
+  await page.goto(ORIGIN, { timeout: 300000 });
   await page.waitForFunction(() => document.getElementById('loading') && document.getElementById('loading').hidden, null, { timeout: 240000 });
 }
 

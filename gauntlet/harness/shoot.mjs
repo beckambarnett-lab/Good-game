@@ -70,7 +70,8 @@ if (cmd === 'refs') {
   // --jobs N stages render concurrently (SwiftShader is CPU-bound: 2 suits a 4-core box)
   const queue = stages.filter(st => !args.missing || angles.some(a => !existsSync(path.join(base, 'stage_' + st.id, a + '.png')))), jobs = +(args.jobs || 2);
   await Promise.all(Array.from({ length: jobs }, async () => { for (let st; (st = queue.shift());) {
-    const errs = await captureAngles(browser, st, angles, path.join(base, 'stage_' + st.id));
+    let errs; // one retry per stage; a failure is logged, never fatal to the round
+    for (let t = 0; t < 2; t++) { try { errs = await captureAngles(browser, st, angles, path.join(base, 'stage_' + st.id)); break; } catch (e) { errs = ['capture failed: ' + e.message.split('\n')[0]]; } }
     if (errs.length) manifest.errors[st.id] = errs;
     console.log('stage', st.id, st.label, errs.length ? 'ERRORS: ' + errs.join(' | ') : 'ok');
   } }));
@@ -132,17 +133,24 @@ if (cmd === 'refs') {
   // start the game (Continue on a save, quiet new game otherwise), then walk a fixed route by setting the player's heading and holding W / the stick
   await page.evaluate(() => { const b = document.querySelector('#tCont') || document.querySelector('#tQuiet') || document.querySelector('#tNew'); b && b.click(); });
   await frames(page, 20);
-  await sz(page, 'DLG.active = false; S.flags.noSpawn = 0; player.pos.set(1.6, 0.12, 13.3); player.yaw = Math.PI / 2; player.pitch = 0.05; 0');
+  await sz(page, 'DLG.active = false; S.flags.noSpawn = 1; player.pos.set(2.4, 0.12, 13.2); player.yaw = Math.PI / 2; player.pitch = 0.05; 0');
+  // a living terrace: seat a customer on every terrace stool (stage 1+)
+  await sz(page, "for (const s of SEATS) if (s.sp === 'terrace' && !s.occ) spawnCustomer({ seat: s.id }); 0").catch(() => { });
   const out = path.resolve(args.out || 'walk'); mkdirSync(out, { recursive: true });
-  const legs = [[Math.PI / 2, 40], [Math.PI, 0], [0, 70], [Math.PI, 30]]; // west up the stairs, turn to face the shop, cross, look back
+  // steer toward each waypoint: up the far stairs, onto the deck, along it to the shop end, then turn back to look over the tables
+  const route = [[-1.6, 13.27], [-4.6, 13.2], [-5.2, 12.4], [-5.2, 8.0], [-5.2, 4.0], [-5.0, 1.5]];
+  const hold = on => device === 'phone' ? sz(page, on ? 'TOUCH.stick.set(0, 1); TOUCH.stickMag = 0.8; 0' : 'TOUCH.stick.set(0, 0); TOUCH.stickMag = 0; 0') : (on ? page.keyboard.down('KeyW') : page.keyboard.up('KeyW'));
   let k = 0;
-  for (const [yaw, steps] of legs) {
-    await sz(page, `player.yaw = ${yaw}; 0`);
-    if (device === 'phone') await sz(page, 'TOUCH.stick.set(0, 1); TOUCH.stickMag = 0.8; 0'); else await page.keyboard.down('KeyW');
-    for (let i = 0; i < steps; i += 10) { await frames(page, 10); await shot(page, path.join(out, String(k++).padStart(3, '0') + '.png')); }
-    if (device === 'phone') await sz(page, 'TOUCH.stick.set(0, 0); TOUCH.stickMag = 0; 0'); else await page.keyboard.up('KeyW');
-    await frames(page, 4); await shot(page, path.join(out, String(k++).padStart(3, '0') + '.png'));
+  for (const [tx, tz] of route) {
+    for (let i = 0; i < 12; i++) {
+      const d = await sz(page, `(() => { const dx = ${tx} - player.pos.x, dz = ${tz} - player.pos.z; player.yaw = Math.atan2(-dx, -dz); return Math.hypot(dx, dz); })()`);
+      if (d < 0.35) break;
+      await hold(true); await frames(page, 6); await hold(false);
+      if (i % 2 === 0) await shot(page, path.join(out, String(k++).padStart(3, '0') + '.png'));
+    }
   }
+  await sz(page, 'player.yaw = Math.PI; player.pitch = -0.15; 0'); await frames(page, 8); await shot(page, path.join(out, String(k++).padStart(3, '0') + '.png'));
+  await sz(page, 'player.pitch = -0.4; 0'); await frames(page, 6); await shot(page, path.join(out, String(k++).padStart(3, '0') + '.png'));
   console.log('player ended at', await sz(page, 'player.pos.toArray().map(v => v.toFixed(2)).join(",")'));
   if (page.errors.length) console.log('ERRORS:', page.errors.join(' | '));
   await browser.close();
