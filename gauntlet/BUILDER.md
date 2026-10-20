@@ -61,6 +61,8 @@ You're a builder on **Shizuku**, a first-person Three.js (r160) tea-shop game se
    | terrace | -5.0,5.0,1.3 | -5.2,4.0,9 | 70 | `bridge_after_terrace` |
    | balcony | 7.5,5.5,6.5 | -6,4.2,7.2 | 60 | `bridge_after_balcony` |
    Each capture takes 2–6 minutes (software WebGL on a shared 4-core machine), so batch angles with `multi` and be patient. Look at the PNGs with the Read tool and iterate.
+   - **Iterate at half size:** add `--w 836` while iterating (a quarter of the CPU). Use full size only for your final check.
+   - **One at a time:** run one capture process at a time. Several builders share this machine.
 3. Run `cd /home/user/good-game/gauntlet/harness && SZ_DIST=<worktree>/dist/index.html node check.mjs` (gameplay regressions). Ignore only a pre-existing "rebuild is idempotent" failure, if the counts it prints are unchanged by your work.
 4. Keep scratch captures out of the repo: put them in `/tmp/claude-0/-home-user-good-game/97272e98-22b2-5247-98e2-89c6fc17c9ea/scratchpad/<your-task>/`.
 5. Commit with `git -c user.name="Beckam Barnett" -c user.email="beckam.barnett@gmail.com" commit`. End the message with these two lines:
