@@ -57,7 +57,7 @@ node shoot.mjs walk --stage 1 --device phone --out dir                          
 2. **The Chapter 3 unlock changes only the tea house**, not the bridge (no repaint, sign, cedar deck or warm light). The reveal happens off-camera, behind a fade.
 3. **Stage 0 materials:** flat, untextured steel; solid-block stairs; the barrier props are missing. (Builder running.)
 4. **Road:** wavy, speckled, psychedelic reflections. Fixed in 42dc12d.
-5. **Lighting:** a cold purple ambient with no warm pools; the rain reads as a white overlay. Fixed in c-pick of e8b188b.
+5. **Lighting:** a cold purple ambient with no warm pools; the rain reads as a white overlay. Fixed in 68e6a9a.
 6. **Konbini and neighbours:** "AMA MART", a flat skyline, a short vista. (Builder running.)
 7. **Continuity:**
    - the crosswalk (a tea house upgrade) is a scatter of floating tiles;
@@ -70,7 +70,7 @@ node shoot.mjs walk --stage 1 --device phone --out dir                          
 
 **Merged this round:**
 - **Wet road** (builder, 42dc12d): removed the ripple, column grain and glints; a vertical streak blur at reflection-texture resolution.
-- **Lighting** (builder, cherry-picked from e8b188b): ambient cut about 60% and moved to grey-blue, a teal/amber grade, blue-grey fog, finer additive rain.
+- **Lighting** (builder, 68e6a9a): ambient cut about 60% and moved to grey-blue, a teal/amber grade, blue-grey fog, finer additive rain.
 
 **Process notes:**
 - **API session limit:** all four builders stopped mid-task and were resumed after the limit reset.

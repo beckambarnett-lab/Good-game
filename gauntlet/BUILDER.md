@@ -4,6 +4,7 @@ You're a builder on **Shizuku**, a first-person Three.js (r160) tea-shop game se
 
 ## Where you work
 - **Your worktree:** you're in an isolated git worktree of the repo (your current working directory). Commit there. Never push.
+  - **Check the base first:** run `git log --oneline -1`. If the worktree isn't on the `gauntlet-bridge` history (there's no `src/js/k_terrace.js`), run `git reset --hard gauntlet-bridge` before you edit anything.
 - **Code:** `src/js/*.js` are joined, in the order listed in `build.mjs`, into ONE `<script type="module">`. That means one shared scope, not separate ES modules. `node build.mjs` writes `dist/index.html`.
 - **Read these first:**
   - `gauntlet/BRIDGE_INVENTORY.md`: every BEFORE → AFTER difference, and what never changes.
