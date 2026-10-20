@@ -76,3 +76,16 @@ node shoot.mjs walk --stage 1 --device phone --out dir                          
 - **API session limit:** all four builders stopped mid-task and were resumed after the limit reset.
 - **Wrong worktree base:** builder worktrees are created on the repo's default checkout (an unrelated project). Builders reset onto `gauntlet-bridge`, and BUILDER.md now says to check this.
 - **CPU:** 4 cores were saturated (load 23). Builders now iterate at half size, one capture at a time.
+
+## Wrap-up (paused at the user's request: weekly usage low)
+- **Loop stopped.** All builder work is preserved: either merged into `gauntlet-bridge` or on its `worktree-agent-*` branch.
+- **Merged without visual verification:** the WIP of the stage 0 rusted bridge (`worktree-agent-a4d8777491843ad89`) and of the structure-and-light upgrades (`worktree-agent-abc7558f4cd862b27`: underside lights, neon teacup, canopy with 2 more tables, copper heaters, bulb strings). Both builders were cut off by the usage limit. `check.mjs` passes on the merged result, but no critic has seen it yet.
+- **Not merged:**
+  - **Greenery WIP** (`worktree-agent-a70260c133da7a1ef`): conflicts in `k_terrace.js` with the structure work.
+  - **Tea house exterior builder** (`worktree-agent-a00f1b07a68c77e8b`): it stopped before making any edits.
+- **Next session:**
+  1. Resolve and merge the greenery branch.
+  2. Build the stage 1 unlock look (repaint, cedar deck, 雫テラス sign, downlights) and remove the old heaters and strings from `buildTerrace`.
+  3. Build the on-camera reveal.
+  4. Recapture as round 2 and run fresh critics.
+- **Published:** the current build (`dist/index.html`) went to the original Shizuku artifact.
