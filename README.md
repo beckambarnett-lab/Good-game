@@ -21,14 +21,14 @@ node build.mjs --watch   # rebuild on every change in src/
 |---|---|
 | `a_core.js` | Utilities, game data (recipes, upgrades, staff, chapters, weather), save state |
 | `b_render.js` | Renderer, quality tiers, post-processing, lights, baked lighting |
-| `c_props.js` | Shared prop builders |
-| `d_city.js`, `d_store.js` | The surrounding city, store helpers |
-| `e_alley.js`, `e_building.js`, `x_exterior.js`, `e_ground.js` | The alley, the shop building, its facade, the ground floor |
-| `f_people.js`, `g_nav.js` | Customers and characters, navigation |
+| `c_props.js` | Prop library and blob shadows |
+| `d_city.js`, `d_store.js` | The surrounding city; painted, lit storefront interiors |
+| `e_alley.js`, `e_building.js`, `x_exterior.js`, `e_ground.js` | The alley, the shop building, the exterior restoration (start → final), the ground-floor interior |
+| `f_people.js`, `g_nav.js` | People; collision zones, solids and the waypoint graph |
 | `h_stations.js` | Brewing stations |
 | `i_weather.js` | Rain, weather cycle |
 | `j_sim.js`, `j_staff.js`, `j_story.js`, `j_tea.js` | Simulation, staff, story beats, tea brewing |
 | `k_ch2.js` … `k_ch5.js` | Chapter 2–5 content |
 | `k_ui.js` | HUD, phone and panels |
-| `l_audio.js`, `l_cheat.js` | Audio, debug cheats |
+| `l_audio.js`, `l_cheat.js` | Audio; the cheat menu (`` ` `` or F8, or tap the money pill 3 times) |
 | `m_loop.js` | Main loop and boot |
