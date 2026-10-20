@@ -1,0 +1,81 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Shizuku</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=DotGothic16&family=Yusei+Magic&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+<!-- @css -->
+</style>
+
+<canvas id="c" tabindex="0" aria-label="Shizuku, a first-person tea shop game"></canvas>
+<div id="pops"></div>
+
+<header id="hud" hidden>
+  <div id="res" class="glass" aria-label="Resources">
+    <div class="r" title="Yen"><i style="color:var(--amber)"><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M5 4.5l3 4 3-4M8 8.5v4M5.5 9h5M5.5 11h5" stroke="currentColor" stroke-width="1.4" fill="none"/></svg></i><b id="rYen">0</b></div>
+    <div class="r" title="Tea leaves"><i style="color:#8fbf3f"><svg viewBox="0 0 16 16"><path d="M3 13C3 6 8 3 14 2c0 7-4 11-11 11z" fill="currentColor" opacity=".9"/><path d="M3 13L10 6" stroke="#0b1022" stroke-width="1.2"/></svg></i><b id="rLeaf">0</b></div>
+    <div class="r" title="Rainwater"><i style="color:#7fc8ff"><svg viewBox="0 0 16 16"><path d="M8 1.5C5.5 6 3.5 8 3.5 10.5a4.5 4.5 0 009 0C12.5 8 10.5 6 8 1.5z" fill="currentColor"/></svg></i><b id="rWater">0</b></div>
+    <div class="r" id="rChargeWrap" title="Storm charge" hidden><i style="color:var(--cyan)"><svg viewBox="0 0 16 16"><path d="M9.5 1L3 9h4.5L6 15l7-8.5H8.5z" fill="currentColor"/></svg></i><b id="rCharge">0</b></div>
+  </div>
+  <div id="hudR">
+    <div id="wx" class="glass"><b id="wxName">Drizzle</b><span id="wxRate">1.2 mm/h</span></div>
+    <button id="btnPhone" class="glass ib" aria-label="Phone (Tab)" title="Phone (Tab)"><svg viewBox="0 0 20 20"><rect x="5" y="1.5" width="10" height="17" rx="2.2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8.5 15.5h3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><span id="phBadge" class="bd" hidden></span></button>
+    <button id="btnPause" class="glass ib" aria-label="Pause (Esc)" title="Pause (Esc)"><svg viewBox="0 0 20 20"><path d="M7 4v12M13 4v12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+  </div>
+</header>
+<div id="teaHud" class="glass" hidden><span id="teaName"></span><span id="teaTemp"></span><i><u id="teaBar"></u></i></div>
+<div id="orders" hidden></div>
+<div id="task" class="glass" hidden><em id="taskTag">TASK</em><span id="taskText"></span></div>
+<div id="cross" hidden></div>
+<svg id="holdRing" viewBox="0 0 34 34" hidden><circle cx="17" cy="17" r="15" fill="none" stroke="rgba(51,228,255,.9)" stroke-width="3" stroke-dasharray="94.25" stroke-dashoffset="94.25" stroke-linecap="round" transform="rotate(-90 17 17)"/></svg>
+<div id="prompt" hidden><b id="pName"></b><span id="pAct"></span></div>
+<div id="marker" hidden><svg viewBox="0 0 22 22"><path d="M11 2l9 9-9 9-9-9z" fill="none" stroke="#ffcf8f" stroke-width="2"/><path d="M11 7l4 4-4 4-4-4z" fill="#ffb35c"/></svg><small id="markerD"></small></div>
+<div id="toast" class="glass" role="status" aria-live="polite"></div>
+<div id="lockHint" class="glass" hidden>Click to look around · <kbd>WASD</kbd> move · <kbd>E</kbd> use · <kbd>Tab</kbd> phone</div>
+
+<div id="touch" hidden><div id="stickBase" hidden><div id="stickKnob"></div></div></div>
+<div id="tbtns" hidden>
+  <button id="btnAlt" class="tb" hidden>Put down</button>
+  <button id="btnUse" class="tb dim">Use</button>
+</div>
+
+<div id="stationUI" hidden>
+  <div id="stTitle" class="glass"></div>
+  <div id="stSteps"></div>
+  <div id="stMeter" class="glass" hidden><div id="stTrack"><i id="stWin"></i><b id="stNeedle"></b></div><span id="stTime"></span></div>
+  <div id="stHint" class="glass"></div>
+  <button id="stPad">Hold</button>
+</div>
+<button id="stBack" class="glass" hidden>‹ Step back</button>
+
+<div id="dlg" class="glass" hidden role="dialog" aria-live="polite"><div id="dlgName"></div><div id="dlgText"></div><div id="dlgCh"></div><div id="dlgMore">▼</div></div>
+
+<section id="phone" class="off" aria-label="Phone">
+  <div id="phStatus"><span id="phTime">23:41</span><span>AMAGASE NET ▮▮▮</span></div>
+  <div id="phHead"><button id="phBack" aria-label="Back">‹</button><h2 id="phTitle">Home</h2><button id="phClose" aria-label="Close phone">✕</button></div>
+  <div id="phBody"></div>
+</section>
+
+<div id="panel" hidden><div id="panelBox" class="glass" role="dialog"></div></div>
+<div id="letter" hidden><div class="paper"><div id="letterText"></div><div class="sig">— Chiyo</div><button id="letterClose">Fold it away ✕</button></div></div>
+
+<div id="fade"></div>
+<div id="card"><div><em id="cardKick">CHAPTER</em><b id="cardTitle"></b></div></div>
+
+<div id="title" hidden>
+  <h1>雫<small>SHIZUKU</small></h1>
+  <p id="titleBlurb">A tea shop under the 8 Line, in a city where it never stops raining. Move in, brew every pot by hand, and build it up and out, floor by floor.</p>
+  <div class="acts" id="titleActs"></div>
+  <div class="note" id="titleNote"></div>
+</div>
+<div id="loading"><div><div class="k">雫</div><div class="bar"><i id="loadBar"></i></div><small id="loadTxt">Waking the city…</small></div></div>
+<div id="nogl" hidden><div><p style="font-family:var(--f-title);font-size:28px;margin:0 0 8px">雫</p><p>This game needs WebGL, which isn't available in this browser.</p></div></div>
+<script>
+  setTimeout(()=>{ if(!window.__szBooted){ const l=document.getElementById('loadTxt'); if(l) l.textContent='Still loading… if this stays, try reloading.'; } }, 20000);
+</script>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script type="module">
+<!-- @js -->
+</script>
