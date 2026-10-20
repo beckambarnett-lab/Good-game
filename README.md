@@ -1,16 +1,34 @@
-# Hearthwood *(working title)*
+# 雫 Shizuku
 
-A slow, warm, low-poly third-person game about keeping a small snowy mountain town warm.
-- Fell trees, saw and split firewood, and stack it to season.
-- Deliver it in an old red pickup called *Marigold*.
-- Shovel and plow the snow.
-- Befriend the people of Wrenhollow through one long winter.
+A first-person tea shop game. You run a shop under the 8 Line, in a city where it never stops raining. Brew every pot by hand, and build the shop up and out, floor by floor. Built with Three.js 0.160 (loaded from jsDelivr), with no install step.
 
-There are no fail states and no punishing timers. The music is generated as you play.
+## Build
 
-- **Platform:** desktop web browsers (Three.js + TypeScript + Vite).
-- **Status:** planning complete. Development starts with milestone M0.
-- **Design and build plan:** [`docs/plan/`](docs/plan/README.md).
-- **Progress:** [`docs/progress.md`](docs/progress.md).
+```sh
+node build.mjs           # → dist/index.html, one self-contained page
+node build.mjs --watch   # rebuild on every change in src/
+```
 
-All art, music and sound are original and generated from code (or from committed Blender scripts), and use no paid or copyrighted assets.
+`dist/index.html` is the whole game in one file. Open it in a browser through any static server, or publish it as a claude.ai artifact.
+
+## Layout
+
+- `src/index.html`: the page (HUD, phone, dialogue and title markup). `<!-- @css -->` and `<!-- @js -->` mark where the build inlines the code.
+- `src/style.css`: all styles.
+- `src/js/`: the game, in the order listed in `build.mjs`. The files are **not** separate ES modules. They are joined into one `<script type="module">`, so everything shares one scope, and a file can use anything declared in a file listed before it.
+
+| File | What's in it |
+|---|---|
+| `a_core.js` | Utilities, game data (recipes, upgrades, staff, chapters, weather), save state |
+| `b_render.js` | Renderer, quality tiers, post-processing, lights, baked lighting |
+| `c_props.js` | Prop library and blob shadows |
+| `d_city.js`, `d_store.js` | The surrounding city; painted, lit storefront interiors |
+| `e_alley.js`, `e_building.js`, `x_exterior.js`, `e_ground.js` | The alley, the shop building, the exterior restoration (start → final), the ground-floor interior |
+| `f_people.js`, `g_nav.js` | People; collision zones, solids and the waypoint graph |
+| `h_stations.js` | Brewing stations |
+| `i_weather.js` | Rain, weather cycle |
+| `j_sim.js`, `j_staff.js`, `j_story.js`, `j_tea.js` | Simulation, staff, story beats, tea brewing |
+| `k_ch2.js` … `k_ch5.js` | Chapter 2–5 content |
+| `k_ui.js` | HUD, phone and panels |
+| `l_audio.js`, `l_cheat.js` | Audio; the cheat menu (`` ` `` or F8, or tap the money pill 3 times) |
+| `m_loop.js` | Main loop and boot |
