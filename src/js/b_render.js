@@ -168,39 +168,33 @@ function worldMat(extra) {
 }
 const WORLD_MAT = worldMat();
 const WORLD_MAT_DS = worldMat({ side: THREE.DoubleSide });
-// wet ground: adds the mirrored neon layer, streaked and rippled
-const REFL = { rt: null, cam: new THREE.PerspectiveCamera(), mat: new THREE.Matrix4(), on: false };
-const WET_U = { tRefl: { value: null }, uTexM: { value: REFL.mat }, uWet: { value: 0.8 }, uTime: { value: 0 }, uReflOn: { value: 0 } };
+// wet ground: adds the mirrored neon layer from two copies of the mirror that renderReflection pre-smears vertically at reflection
+// resolution (tReflF a short soft core, tReflS the long streak), so streaks stay smooth and continuous: no per-pixel ripple or glint noise
+const REFL = { rt: null, rb: null, rs: null, cam: new THREE.PerspectiveCamera(), mat: new THREE.Matrix4(), on: false };
+const WET_U = { tRefl: { value: null }, tReflF: { value: null }, tReflS: { value: null }, uTexM: { value: REFL.mat }, uWet: { value: 0.8 }, uTime: { value: 0 }, uReflOn: { value: 0 } };
 const WET_MAT = new THREE.MeshLambertMaterial({ vertexColors: true });
 WET_MAT.onBeforeCompile = sh => {
   sh.uniforms.uBakeK = BAKE_K; Object.assign(sh.uniforms, WET_U); _bakeChunk(sh);
   sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute float wet;\nvarying float vWet;\nvarying vec3 vWP;\nuniform mat4 uTexM;\nvarying vec4 vRC;')
     .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\nvec4 wpp = modelMatrix * vec4(transformed,1.0); vWP = wpp.xyz; vWet = wet; vRC = uTexM * wpp;');
-  sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying float vWet; varying vec3 vWP; varying vec4 vRC; uniform sampler2D tRefl; uniform float uWet,uTime,uReflOn;')
+  sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying float vWet; varying vec3 vWP; varying vec4 vRC; uniform sampler2D tRefl, tReflF, tReflS; uniform float uWet,uTime,uReflOn;')
     .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
-      // fine per-column grain: breaks the mirror into thin vertical streaks running toward the viewer
-      float wcol = fract(sin(floor(vWP.x*42.0+floor(vWP.z*3.0)*0.37)*91.7)*4375.85);
-      vec3 rc = vec3(0.0);
+      float pud = smoothstep(0.85,1.0,vWet);
       if(uReflOn>0.5){
-        vec2 rip = vec2(sin(vWP.x*9.0+uTime*2.1+sin(vWP.z*7.0)), cos(vWP.z*8.0-uTime*1.7+sin(vWP.x*6.0)))*0.004;
-        vec2 ruv = vRC.xy/vRC.w + rip + vec2((wcol-0.5)*0.003, 0.0);
-        rc = texture2D(tRefl,ruv).rgb*0.2
-          + (texture2D(tRefl,ruv+vec2(0.0,0.02)).rgb + texture2D(tRefl,ruv-vec2(0.0,0.02)).rgb)*0.15
-          + (texture2D(tRefl,ruv+vec2(0.0,0.06)).rgb + texture2D(tRefl,ruv-vec2(0.0,0.06)).rgb)*0.11
-          + (texture2D(tRefl,ruv+vec2(0.0,0.13)).rgb + texture2D(tRefl,ruv-vec2(0.0,0.13)).rgb)*0.08
-          + (texture2D(tRefl,ruv+vec2(0.0,0.24)).rgb + texture2D(tRefl,ruv-vec2(0.0,0.24)).rgb)*0.055;
+        vec2 ruv = vRC.xy/vRC.w;
+        // a soft core under each light plus a long streak; the road roughens a little with distance
+        float dd = length(vWP-cameraPosition);
+        float ks = mix(mix(0.36,0.18,smoothstep(3.0,28.0,dd)), 0.7, pud);
+        vec3 tail = texture2D(tReflS,ruv).rgb*0.5 + (texture2D(tReflS,ruv+vec2(0.0,0.1)).rgb + texture2D(tReflS,ruv-vec2(0.0,0.1)).rgb)*0.25;
+        vec3 core = texture2D(tReflF,ruv).rgb; if(pud>0.0) core = mix(core, texture2D(tRefl,ruv).rgb, pud); // standing water is a true mirror
+        vec3 rc = core*ks + tail*(1.0-ks);
         // fade out where the mirror runs off its texture (no clamped smears at the frame edges)
         rc *= smoothstep(0.0,0.06,ruv.x)*smoothstep(1.0,0.94,ruv.x)*smoothstep(0.0,0.05,ruv.y)*smoothstep(1.0,0.95,ruv.y);
-        rc *= 0.55 + 0.9*wcol;
         totalEmissiveRadiance += rc * vWet * uWet * 1.05;
       }
-      // sparkle: tiny wet glints that pick up the nearby light
-      { vec2 sc = floor(vWP.xz*vec2(70.0,60.0)); float h = fract(sin(dot(sc, vec2(12.9898,78.233)))*43758.5453);
-        float tw = 0.55 + 0.45*sin(uTime*2.3 + h*60.0);
-        totalEmissiveRadiance += step(0.982, h) * tw * vWet * uWet * (vec3(0.025,0.024,0.035) + rc*2.4 + vBake*0.7); }
-      totalEmissiveRadiance += vec3(0.02, 0.019, 0.042) * smoothstep(0.85, 1.0, vWet);`);
+      totalEmissiveRadiance += vec3(0.02, 0.019, 0.042) * pud;`);
 };
-WET_MAT.customProgramCacheKey = () => 'wetV2';
+WET_MAT.customProgramCacheKey = () => 'wetV3';
 // glossy finishes (per-vertex kind 'gk'): 1 varnished wood, 2 vinyl, 3 chrome, 4 varnished floor (+ planar reflection).
 // Lamp highlights come from up to 8 point positions (0-3 pendants/ring, 4-6 brewing station) in GLOSS_U (set by the room builder); reflections of the room are faked from the reflected direction.
 const GLOSS_U = { uLP: { value: [0, 1, 2, 3, 4, 5, 6, 7].map(() => new THREE.Vector3(0, -50, 0)) }, uLC: { value: [0, 1, 2, 3, 4, 5, 6, 7].map(() => new THREE.Vector3()) } };

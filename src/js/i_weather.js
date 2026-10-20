@@ -91,13 +91,21 @@ function glassPane(group, w, h, x, y, z, ry, tint) {
 }
 function updateGlass(dt) { for (const g of GLASS_MATS) { g.t.offset.y += g.sp * dt * (0.4 + WX.rain); { const k = playerIndoors() ? 0.35 : 1; g.m.color.setRGB((0.2 + 0.25 * WX.rain) * k, (0.24 + 0.25 * WX.rain) * k, (0.32 + 0.25 * WX.rain) * k); } } }
 /* ---------- wet reflection pass ---------- */
-function initReflection() { if (!Q.refl) { WET_U.uReflOn.value = 0; return; } REFL.rt = new THREE.WebGLRenderTarget(Q.refl, Q.refl, { type: THREE.HalfFloatType }); WET_U.tRefl.value = REFL.rt.texture; WET_U.uReflOn.value = 1; REFL.cam.layers.set(1); }
+function initReflection() { if (!Q.refl) { WET_U.uReflOn.value = 0; return; } const rt = d => new THREE.WebGLRenderTarget(Q.refl, Q.refl, { type: THREE.HalfFloatType, depthBuffer: d }); REFL.rt = rt(true); REFL.rb = rt(false); REFL.rs = rt(false); WET_U.tRefl.value = REFL.rt.texture; WET_U.tReflF.value = REFL.rb.texture; WET_U.tReflS.value = REFL.rs.texture; WET_U.uReflOn.value = 1; REFL.cam.layers.set(1); }
+// vertical-only smear of the mirror (wet asphalt stretches lights into streaks toward the viewer), done at reflection resolution:
+// a fine 8-tap box (its taps alternate half a texel sideways: a free [1 2 1] horizontal filter that hides the mirror's stair-stepped edges),
+// then a coarse 8-tap tent, so the long streak is continuous instead of a ladder of ghost copies. Steps are in uv, so every tier smears alike.
+const REFL_BLUR = new ShaderPass({
+  uniforms: { tDiffuse: { value: null }, uStep: { value: 0 }, uTent: { value: 0 }, uX: { value: 0 } },
+  vertexShader: 'varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
+  fragmentShader: 'uniform sampler2D tDiffuse; uniform float uStep,uTent,uX; varying vec2 vUv; void main(){ vec3 c=vec3(0.0); float ws=0.0; for(int i=0;i<8;i++){ float o=float(i)-3.5; float w=1.0-uTent*abs(o)/4.5; c+=texture2D(tDiffuse,vUv+vec2(mod(float(i),2.0)<0.5?-uX:uX,o*uStep)).rgb*w; ws+=w; } gl_FragColor=vec4(c/ws,1.0); }',
+});
 const _rv = new THREE.Vector3(), _rt = new THREE.Vector3(), _rl = new THREE.Vector3(), _rm = new THREE.Matrix4(), _rn = new THREE.Vector3(0, 1, 0), _rcp = new THREE.Vector3();
 // keep the wet-road reflection in step with the quality tier: auto-quality can drop to Low (no reflection pass) or climb back,
 // and without this the last reflection stayed frozen on the road
 function syncReflection() {
   if (!Q.refl) { WET_U.uReflOn.value = 0; return; }
-  if (!REFL.rt) initReflection(); else if (REFL.rt.width !== Q.refl) REFL.rt.setSize(Q.refl, Q.refl);
+  if (!REFL.rt) initReflection(); else if (REFL.rt.width !== Q.refl) for (const t of [REFL.rt, REFL.rb, REFL.rs]) t.setSize(Q.refl, Q.refl);
 }
 function renderReflection() {
   if (!REFL.rt) return; _rcp.setFromMatrixPosition(camera.matrixWorld); if (_rcp.y < 0.05 || (playerIndoors() && player.pos.y > 2)) { WET_U.uReflOn.value = 0; return; } WET_U.uReflOn.value = 1;
@@ -105,7 +113,9 @@ function renderReflection() {
   vc.position.copy(_rv); vc.up.set(0, 1, 0).applyMatrix4(_rm).reflect(_rn); vc.lookAt(_rt); vc.far = camera.far; vc.updateMatrixWorld(); vc.projectionMatrix.copy(camera.projectionMatrix);
   REFL.mat.set(0.5, 0, 0, 0.5, 0, 0.5, 0, 0.5, 0, 0, 0.5, 0.5, 0, 0, 0, 1); REFL.mat.multiply(vc.projectionMatrix); REFL.mat.multiply(vc.matrixWorldInverse);
   const fog = scene.fog, bg = scene.background; scene.fog = null; sky.visible = false; clouds.visible = false;
-  renderer.setRenderTarget(REFL.rt); renderer.setClearColor(0x000000, 1); renderer.clear(); renderer.render(scene, vc); renderer.setRenderTarget(null); renderer.setClearColor(0x05070f, 1);
+  renderer.setRenderTarget(REFL.rt); renderer.setClearColor(0x000000, 1); renderer.clear(); renderer.render(scene, vc);
+  const U = REFL_BLUR.uniforms; U.uStep.value = 1.5 / 512; U.uTent.value = 0; U.uX.value = 0.5 / Q.refl; REFL_BLUR.render(renderer, REFL.rb, REFL.rt); U.uStep.value = 14 / 512; U.uTent.value = 1; U.uX.value = 0; REFL_BLUR.render(renderer, REFL.rs, REFL.rb);
+  renderer.setRenderTarget(null); renderer.setClearColor(0x05070f, 1);
   scene.fog = fog; sky.visible = true; clouds.visible = true;
   (REFL.cp || (REFL.cp = new THREE.Vector3())).copy(camera.position); (REFL.cq || (REFL.cq = new THREE.Quaternion())).copy(camera.quaternion);
 }
